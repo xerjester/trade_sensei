@@ -24,9 +24,10 @@ class Config:
 
     FLASK_DEBUG = os.environ.get('FLASK_DEBUG', '0') == '1'
     CORS_ORIGINS = tuple(
-        origin.strip() for origin in os.environ.get(
-            'CORS_ORIGINS', 'http://localhost:5500,http://127.0.0.1:5500'
-        ).split(',') if origin.strip()
+        origin.strip().strip('"\'').rstrip('/') for origin in os.environ.get(
+            'CORS_ORIGINS',
+            'http://localhost:5500,http://127.0.0.1:5500,http://202.28.34.205:8080,http://202.28.34.205,https://202.28.34.205:8080'
+        ).split(',') if origin.strip().strip('"\'')
     )
     MAX_CONTENT_LENGTH = int(os.environ.get('MAX_CONTENT_LENGTH', str(1024 * 1024)))
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(

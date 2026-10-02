@@ -23,7 +23,7 @@ def create_app():
     CORS(
         app,
         resources={r'/api/*': {
-            'origins': Config.CORS_ORIGINS,
+            'origins': list(Config.CORS_ORIGINS),
             'methods': ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
             'allow_headers': ['Content-Type', 'Authorization'],
         }},
@@ -65,7 +65,7 @@ def create_app():
         response.headers['X-Frame-Options'] = 'DENY'
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
         response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
-        response.headers['Cross-Origin-Resource-Policy'] = 'same-site'
+        response.headers['Cross-Origin-Resource-Policy'] = 'cross-origin'
         response.headers['Content-Security-Policy'] = (
             "default-src 'self'; object-src 'none'; base-uri 'self'; "
             "frame-ancestors 'none'; form-action 'self'"
