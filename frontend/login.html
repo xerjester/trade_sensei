@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เข้าสู่ระบบ - TradeSensei</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="guest-mode login-page">
+    <nav class="top-nav">
+        <div class="nav-brand">
+            <button type="button" class="nav-toggle" id="nav-toggle" aria-label="เปิดเมนู" aria-expanded="false">☰</button>
+            <a href="index.html" class="logo"><span class="brand-mark">TS</span><span>TradeSensei</span></a>
+        </div>
+        <div class="nav-actions" id="nav-actions">
+            <a href="register.html" class="btn-outline nav-link-btn">สมัครสมาชิก</a>
+            <a href="index.html" class="btn-ghost nav-link-btn">หน้าหลัก</a>
+        </div>
+    </nav>
+
+    <main class="auth-container">
+        <div class="auth-card">
+            <h1>ยินดีต้อนรับกลับ</h1>
+            <p class="auth-subtitle">เข้าสู่ระบบเพื่อใช้งาน AI Prediction, วิเคราะห์ข่าว และ Sensei Copilot</p>
+
+            <form id="login-form" class="auth-form">
+                <label for="email">อีเมล หรือชื่อผู้ใช้</label>
+                <input type="text" id="email" name="email" placeholder="เช่น you@email.com" required autocomplete="username">
+
+                <label for="password">รหัสผ่าน</label>
+                <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+
+                <p id="login-error" class="auth-error" hidden role="alert"></p>
+
+                <button type="submit" class="btn-primary btn-large" id="login-submit">เข้าสู่ระบบ</button>
+                <button type="button" class="forgot-password-link" id="forgot-password-btn">ลืมรหัสผ่าน?</button>
+            </form>
+
+            <div class="auth-divider"><span>หรือ</span></div>
+            <div id="google-signin-btn" class="google-signin-wrap"></div>
+
+            <p class="auth-footer">ยังไม่มีบัญชี? <a href="register.html">สมัครสมาชิกฟรี</a></p>
+        </div>
+    </main>
+
+    <div id="forgot-password-modal" class="modal-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="forgot-password-title">
+        <div class="modal-card reset-modal">
+            <button type="button" class="modal-close" id="forgot-password-close" aria-label="ปิด">×</button>
+            <h3 id="forgot-password-title">รีเซ็ตรหัสผ่าน</h3>
+            <p class="auth-subtitle" id="forgot-password-subtitle">กรอกอีเมลเพื่อรับรหัส OTP ทางอีเมล รหัสมีอายุ 10 นาที</p>
+
+            <!-- ขั้นตอนที่ 1: กรอกอีเมลเพื่อตรวจสอบและส่ง OTP -->
+            <form id="request-otp-form" class="auth-form">
+                <label for="reset-email">อีเมล</label>
+                <input type="email" id="reset-email" autocomplete="email" required placeholder="you@email.com">
+                <button type="submit" class="btn-primary" id="request-otp-btn">ส่งรหัส OTP</button>
+            </form>
+
+            <!-- ขั้นตอนที่ 2: กรอกรหัส OTP 6 ตัว -->
+            <form id="verify-otp-form" class="auth-form" hidden>
+                <label for="reset-otp">รหัส OTP 6 หลัก</label>
+                <input type="text" id="reset-otp" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required placeholder="123456" style="text-align: center; font-size: 1.35rem; letter-spacing: 0.35em; font-weight: 700;">
+                <button type="submit" class="btn-primary" id="verify-otp-btn">ยืนยันรหัส OTP</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                    <button type="button" class="btn-ghost" id="change-email-btn" style="padding: 4px 8px; font-size: 0.85rem;">← เปลี่ยนอีเมล</button>
+                    <button type="button" class="btn-ghost" id="resend-otp-btn" style="padding: 4px 8px; font-size: 0.85rem;">ขอรหัสใหม่อีกครั้ง</button>
+                </div>
+            </form>
+
+            <!-- ขั้นตอนที่ 3: ตั้งรหัสผ่านใหม่ (แสดงเมื่อ OTP ถูกต้อง) -->
+            <form id="reset-password-form" class="auth-form" hidden>
+                <label for="reset-new-password">รหัสผ่านใหม่</label>
+                <input type="password" id="reset-new-password" autocomplete="new-password" minlength="8" required placeholder="อย่างน้อย 8 ตัวอักษร พร้อมตัวเลข">
+                <label for="reset-confirm-password">ยืนยันรหัสผ่านใหม่</label>
+                <input type="password" id="reset-confirm-password" autocomplete="new-password" minlength="8" required placeholder="ยืนยันรหัสผ่านใหม่">
+                <button type="submit" class="btn-primary" id="reset-password-btn">บันทึกรหัสผ่านใหม่</button>
+            </form>
+
+            <p id="reset-password-message" class="auth-error" hidden role="alert" style="margin-top: 12px;"></p>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script src="login.js"></script>
+</body>
+</html>

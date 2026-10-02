@@ -1,0 +1,56 @@
+services:
+  # 1. ฐานข้อมูล PostgreSQL
+  db:
+    image: postgres:15-alpine
+    container_name: tradesensei_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tradesensei}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-tradesensei_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # 2. เครื่องมือจัดการฐานข้อมูล (pgAdmin)
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: tradesensei_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@tradesensei.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:?Set PGADMIN_DEFAULT_PASSWORD in .env}
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  # 3. ฝั่ง Backend (Flask)
+  backend:
+    build: ./backend
+    container_name: tradesensei_backend
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - FLASK_APP=wsgi.py
+      - PYTHONPATH=/app
+      - FLASK_DEBUG=${FLASK_DEBUG:-0}
+      - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in .env}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-TradeSensei <onboarding@resend.dev>}
+      - DEPOSIT_RATE_ANNUAL=0.025
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5500,http://127.0.0.1:5500}
+      - JWT_ACCESS_TOKEN_MINUTES=${JWT_ACCESS_TOKEN_MINUTES:-60}
+      - RATELIMIT_STORAGE_URI=${RATELIMIT_STORAGE_URI:-memory://}
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app # เพื่อให้โค้ดอัปเดตอัตโนมัติเวลาเราแก้ไฟล์
+      - ./frontend:/frontend:ro # ให้ pytest ตรวจ UI contracts โดยไม่แก้ไฟล์จาก container
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:

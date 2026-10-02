@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - TradeSensei</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="admin-page" hidden>
+    <nav class="top-nav">
+        <div class="nav-brand">
+            <button type="button" class="nav-toggle" id="nav-toggle" aria-label="เปิดเมนู" aria-expanded="false">☰</button>
+            <div class="logo"><span class="brand-mark">TS</span><span>TradeSensei</span><span class="logo-sub">Admin</span></div>
+        </div>
+        <div class="nav-actions" id="nav-actions">
+            <a href="index.html" class="btn-outline nav-link-btn">หน้าหลัก</a>
+            <button type="button" class="btn-outline nav-link-btn" onclick="openPasswordModal()">เปลี่ยนรหัสผ่าน</button>
+            <button type="button" class="btn-ghost" onclick="logoutAdmin()">ออกจากระบบ</button>
+        </div>
+    </nav>
+
+    <div class="admin-wrap">
+        <header class="admin-hero">
+            <div class="admin-hero-copy">
+                <p class="eyebrow">SYSTEM OPERATIONS</p>
+                <h1>ศูนย์ควบคุมระบบ</h1>
+                <p>จัดการข้อมูลตลาด โมเดล และบัญชีผู้ใช้จากพื้นที่เดียว</p>
+                <div class="admin-live-status"><span class="status-dot" aria-hidden="true"></span>ระบบพร้อมรับคำสั่ง</div>
+            </div>
+            <aside class="admin-overview" aria-label="ภาพรวมระบบ">
+                <div class="overview-stat">
+                    <strong id="admin-stock-count">—</strong>
+                    <span>สินทรัพย์ในระบบ</span>
+                </div>
+                <div class="overview-stat">
+                    <strong id="admin-user-count">—</strong>
+                    <span>บัญชีผู้ใช้</span>
+                </div>
+                <div class="overview-stat overview-status">
+                    <strong>Live</strong>
+                    <span>สถานะบริการ</span>
+                </div>
+            </aside>
+        </header>
+
+        <section class="control-card admin-log-card">
+            <div class="admin-log-heading">
+                <div>
+                    <p class="section-kicker">ACTIVITY STREAM</p>
+                    <h3>บันทึกการทำงาน</h3>
+                    <p class="card-desc">ตรวจสอบคำสั่ง Scraper, การเทรนโมเดล และกิจกรรมของผู้ดูแลล่าสุด</p>
+                </div>
+                <button type="button" class="btn-outline" onclick="loadLogs()">รีเฟรช Log</button>
+            </div>
+            <div class="log-window" id="log-window">[System] พร้อมทำงาน...</div>
+        </section>
+
+        <div class="admin-grid">
+            <section class="control-card admin-stock-card">
+                <div class="admin-card-heading">
+                    <div>
+                        <p class="section-kicker">MARKET DATA</p>
+                        <h3>จัดการหุ้น</h3>
+                        <p class="card-desc">เพิ่มหรือลบรายการหลักทรัพย์ที่ระบบติดตาม</p>
+                    </div>
+                </div>
+                <div class="admin-form-row">
+                    <input type="text" id="new-symbol" placeholder="ชื่อย่อ เช่น GULF.BK" class="filter-select" aria-label="ชื่อย่อหุ้น">
+                    <input type="text" id="new-name" placeholder="ชื่อบริษัท" class="filter-select" aria-label="ชื่อบริษัท">
+                    <button type="button" class="btn-primary" onclick="addStock()">เพิ่มหุ้น</button>
+                </div>
+                <div class="table-wrap">
+                    <table id="stock-table">
+                        <thead>
+                            <tr><th>Symbol</th><th>ชื่อบริษัท</th><th>หมวดหมู่</th><th></th></tr>
+                        </thead>
+                        <tbody id="stock-table-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="admin-operations">
+                <div class="control-card admin-action-card">
+                    <p class="section-kicker">AUTOMATION</p>
+                    <h3>สั่งงานระบบ</h3>
+                    <p class="card-desc">เริ่มกระบวนการดึงข้อมูลหรือเทรนโมเดล AI โดยผลลัพธ์จะแสดงในบันทึกด้านบน</p>
+                    <div class="admin-actions">
+                        <button type="button" class="btn-ai" onclick="runTask('run-scraper')"><span>↻</span> ดึงข้อมูลตลาด</button>
+                        <button type="button" class="btn-outline" onclick="trainModels()"><span>✦</span> เทรน Prophet ทั้งหมด</button>
+                    </div>
+                </div>
+                <aside class="admin-tip-card">
+                    <span class="tip-icon" aria-hidden="true">i</span>
+                    <div><strong>ก่อนเริ่มเทรน</strong><p>อัปเดตราคาหุ้นก่อนเสมอ เพื่อให้โมเดลใช้ข้อมูลล่าสุดในการคำนวณ</p></div>
+                </aside>
+            </section>
+        </div>
+
+        <section class="control-card admin-users-section">
+            <div class="admin-users-heading">
+                <div>
+                    <p class="section-kicker">ACCESS CONTROL</p>
+                    <h3>จัดการผู้ใช้</h3>
+                    <p class="card-desc">ดู แก้ไขสิทธิ์ และลบบัญชีสมาชิกหรือผู้ดูแลระบบ</p>
+                </div>
+                <button type="button" class="btn-outline" onclick="loadUsers()">รีเฟรชรายชื่อ</button>
+            </div>
+            <div class="table-wrap">
+                <table id="users-table">
+                    <thead>
+                        <tr>
+                            <th>อีเมล</th>
+                            <th>ชื่อ</th>
+                            <th>สิทธิ์</th>
+                            <th>สมัครเมื่อ</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table-body"></tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <div id="user-edit-modal" class="modal-overlay" hidden role="dialog" aria-labelledby="user-edit-title">
+        <div class="modal-card">
+            <button type="button" class="modal-close" onclick="closeUserEditModal()" aria-label="ปิด">×</button>
+            <h3 id="user-edit-title">แก้ไขผู้ใช้</h3>
+            <input type="hidden" id="edit-user-id">
+            <label for="edit-email">อีเมล</label>
+            <input type="email" id="edit-email" class="filter-select" required>
+            <label for="edit-first-name">ชื่อ</label>
+            <input type="text" id="edit-first-name" class="filter-select" required>
+            <label for="edit-last-name">นามสกุล</label>
+            <input type="text" id="edit-last-name" class="filter-select">
+            <label for="edit-role">สิทธิ์</label>
+            <select id="edit-role" class="filter-select">
+                <option value="member">สมาชิก (member)</option>
+                <option value="admin">ผู้ดูแล (admin)</option>
+            </select>
+            <label for="edit-new-password">รหัสผ่านใหม่ (เว้นว่าง = ไม่เปลี่ยน)</label>
+            <input type="password" id="edit-new-password" class="filter-select" autocomplete="new-password">
+            <div class="modal-actions">
+                <button type="button" class="btn-primary" onclick="saveUserEdit()">บันทึก</button>
+                <button type="button" class="btn-ghost" onclick="closeUserEditModal()">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="password-modal" class="modal-overlay" hidden role="dialog" aria-labelledby="password-modal-title">
+        <div class="modal-card">
+            <button type="button" class="modal-close" onclick="closePasswordModal()" aria-label="ปิด">×</button>
+            <h3 id="password-modal-title">เปลี่ยนรหัสผ่าน</h3>
+            <label for="pwd-current">รหัสผ่านปัจจุบัน</label>
+            <input type="password" id="pwd-current" class="filter-select" autocomplete="current-password">
+            <label for="pwd-new">รหัสผ่านใหม่</label>
+            <input type="password" id="pwd-new" class="filter-select" autocomplete="new-password">
+            <label for="pwd-confirm">ยืนยันรหัสผ่านใหม่</label>
+            <input type="password" id="pwd-confirm" class="filter-select" autocomplete="new-password">
+            <div class="modal-actions">
+                <button type="button" class="btn-primary" onclick="submitPasswordChange()">บันทึก</button>
+                <button type="button" class="btn-ghost" onclick="closePasswordModal()">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>

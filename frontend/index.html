@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradeSensei - วิเคราะห์หุ้นด้วย AI</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="guest-mode">
+    <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+    <nav class="top-nav">
+        <div class="nav-brand">
+            <button type="button" class="nav-toggle" id="nav-toggle" aria-label="เปิดเมนู" aria-expanded="false">☰</button>
+            <a class="logo" href="index.html" aria-label="TradeSensei หน้าหลัก"><span class="brand-mark">TS</span><span>TradeSensei</span></a>
+        </div>
+        <span class="user-badge" id="user-badge">สมาชิก</span>
+        <div class="nav-actions" id="nav-actions">
+            <button type="button" class="btn-outline nav-link-btn" id="password-btn" style="display:none;" onclick="openPasswordModal()">เปลี่ยนรหัสผ่าน</button>
+            <button type="button" class="btn-outline" id="login-btn" onclick="handleAuthButton()">เข้าสู่ระบบ</button>
+            <button type="button" class="btn-primary" id="register-btn" onclick="goToRegister()">สมัครฟรี</button>
+        </div>
+    </nav>
+
+    <section id="landing-page" class="landing-container">
+        <div class="hero">
+            <div class="hero-badge">MARKET INTELLIGENCE · THAILAND</div>
+            <h1>ข้อมูลที่ชัดเจน<br>เพื่อการตัดสินใจที่<strong>มีเหตุผล</strong></h1>
+            <p>ติดตามราคา ข่าว และมุมมองเชิงข้อมูลของสินทรัพย์ที่คุณสนใจในพื้นที่ทำงานเดียว</p>
+            <button type="button" class="btn-primary btn-large" onclick="scrollToDashboard()">สำรวจตลาด <span aria-hidden="true">→</span></button>
+        </div>
+
+        <section class="research-flow" aria-labelledby="research-flow-title">
+            <div class="research-flow-heading">
+                <span class="section-kicker">HOW TO USE TRADESENSEI</span>
+                <h2 id="research-flow-title">ดูข้อมูลเป็นลำดับ ก่อนตัดสินใจ</h2>
+                <p>เริ่มจากข้อมูลตลาด แล้วค่อยใช้เครื่องมือวิเคราะห์เพื่อมองภาพให้รอบด้าน</p>
+            </div>
+            <ol class="research-steps">
+                <li class="research-step" role="button" tabindex="0" data-landing-action="browse" aria-label="เลือกสินทรัพย์: เปิดรายการหุ้น">
+                    <span class="research-step-number">01</span>
+                    <div>
+                        <h3>เลือกสินทรัพย์</h3>
+                        <p>ค้นหาหุ้นหรือสินทรัพย์ที่ต้องการติดตามจากรายการในระบบ</p>
+                    </div>
+                </li>
+                <li class="research-step" role="button" tabindex="0" data-landing-action="context" aria-label="อ่านบริบทตลาด: เปิดกราฟและข่าวล่าสุด">
+                    <span class="research-step-number">02</span>
+                    <div>
+                        <h3>อ่านบริบทตลาด</h3>
+                        <p>ดูราคาย้อนหลัง ข่าวล่าสุด และอารมณ์ข่าวประกอบกัน</p>
+                    </div>
+                </li>
+                <li class="research-step" role="button" tabindex="0" data-landing-action="analysis" aria-label="วิเคราะห์เพิ่มเติม: ดูเครื่องมือสำหรับสมาชิก">
+                    <span class="research-step-number">03</span>
+                    <div>
+                        <h3>วิเคราะห์เพิ่มเติม</h3>
+                        <p>สมาชิกใช้ Forecast, Backtest และ Sensei Copilot เพื่อศึกษาข้อมูลต่อได้</p>
+                    </div>
+                </li>
+            </ol>
+        </section>
+
+        <aside class="investment-disclaimer" role="note" aria-label="ข้อจำกัดความรับผิดชอบด้านการลงทุน">
+            <span class="disclaimer-label">IMPORTANT NOTICE</span>
+            <p><strong>ข้อมูลนี้จัดทำเพื่อการศึกษาและประกอบการวิเคราะห์เท่านั้น</strong> ไม่ใช่คำแนะนำให้ซื้อ ขาย หรือถือครองสินทรัพย์ การคาดการณ์อาจคลาดเคลื่อนและการลงทุนมีความเสี่ยง ผู้ใช้งานควรศึกษาข้อมูลเพิ่มเติมและตัดสินใจด้วยตนเอง</p>
+        </aside>
+    </section>
+
+    <section id="app-dashboard" class="dashboard-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="section-title-row"><h3>รายการหุ้น</h3><span id="stock-count" class="item-count">—</span></div>
+                <p>คลิกเพื่อดูกราฟและข่าว</p>
+            </div>
+            <div id="stock-search" class="search-box search-editor" role="searchbox" contenteditable="true" data-placeholder="ค้นหาชื่อย่อหุ้น..." aria-label="ค้นหาหุ้น" aria-multiline="false" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+            <select id="sector-filter" class="filter-select" aria-label="กรองหมวดหมู่">
+                <option value="all">ทุกหมวดหมู่</option>
+                <option value="energy">พลังงาน</option>
+                <option value="technology">เทคโนโลยี</option>
+                <option value="communication services">สื่อสาร</option>
+                <option value="commodities">สินค้าโภคภัณฑ์ / ทองคำ</option>
+                <option value="crypto">คริปโต</option>
+            </select>
+            <ul id="stock-list">
+                <li class="active">กำลังโหลด...</li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="help-banner guest-only">
+                Guest view — <a href="login.html">เข้าสู่ระบบ</a> หรือ <a href="register.html">สมัครสมาชิก</a> เพื่อเข้าถึงการวิเคราะห์เชิงลึก
+            </div>
+            <div class="help-banner member-only">
+                Member workspace — เลือก <strong>Forecast 7 days</strong> เพื่อดูการประมาณการจาก Prophet
+            </div>
+
+            <header class="chart-header">
+                <div class="chart-title-block">
+                    <div class="chart-symbol-row">
+                        <h2 id="stock-title">PTT.BK</h2>
+                        <span class="live-pill"><span class="pulse-dot" aria-hidden="true"></span> Live</span>
+                    </div>
+                    <div class="chart-ticker-row">
+                        <span id="stock-price" class="stock-price-display">—</span>
+                        <span id="stock-delta" class="delta-badge">—</span>
+                    </div>
+                    <p class="stock-meta" id="stock-meta">กำลังโหลดข้อมูล...</p>
+                    <div id="candle-stats" class="candle-stats" aria-label="สถิติราคาล่าสุด">
+                        <span>O <b id="stat-open">—</b></span>
+                        <span>H <b id="stat-high">—</b></span>
+                        <span>L <b id="stat-low">—</b></span>
+                        <span>C <b id="stat-close">—</b></span>
+                        <span>V <b id="stat-vol">—</b></span>
+                    </div>
+                </div>
+                <div class="chart-controls">
+                    <button type="button" class="btn-ai locked-btn" id="prediction-btn" onclick="togglePrediction()" title="ต้องเข้าสู่ระบบเป็นสมาชิก">
+                        Forecast 7 days
+                    </button>
+                    <button type="button" class="btn-outline locked-btn" id="time-machine-btn" onclick="toggleTimeMachine()" title="จำลองผลตอบแทนเทียบเงินฝาก">
+                        Backtest
+                    </button>
+                    <button type="button" class="btn-outline locked-btn copilot-chart-btn" id="copilot-btn" onclick="openCopilotModal()" title="ถาม Sensei Copilot ด้วยข้อมูลในระบบ">
+                        <span class="copilot-chart-mark" aria-hidden="true">S</span> Ask Sensei
+                    </button>
+                </div>
+            </header>
+            <div class="chart-range-controls" id="chart-range-controls" aria-label="ช่วงเวลาของกราฟ">
+                <button type="button" class="range-btn" data-range="1D" onclick="setChartRange('1D')" title="Member only">1D</button>
+                <button type="button" class="range-btn" data-range="7D" onclick="setChartRange('7D')" title="Member only">7D</button>
+                <button type="button" class="range-btn" data-range="1M" onclick="setChartRange('1M')" title="Member only">1M</button>
+                <button type="button" class="range-btn" data-range="6M" onclick="setChartRange('6M')" title="Member only">6M</button>
+                <button type="button" class="range-btn active" data-range="1Y" onclick="setChartRange('1Y')" title="Member only">1Y</button>
+                <button type="button" class="range-btn" data-range="2Y" onclick="setChartRange('2Y')" title="Member only">2Y</button>
+            </div>
+            <div id="prediction-metrics" class="prediction-metrics" hidden aria-live="polite"></div>
+
+            <div id="chart-container" class="chart-box">
+                <div class="chart-loading" id="chart-loading">กำลังโหลดกราฟ...</div>
+            </div>
+
+            <div class="bottom-panels">
+                <div class="panel news-panel">
+                    <h3>ข่าวและบริบทตลาด</h3>
+                    <p class="panel-desc">Latest market context</p>
+                    <div class="panel-body">
+                        <ul class="news-list">
+                            <li><span style="color:var(--text-dim)">กำลังโหลดข่าว...</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="panel analysis-panel locked-container">
+                    <h3>สรุปเชิงวิเคราะห์</h3>
+                    <p class="panel-desc">Signals from price &amp; news</p>
+                    <div class="locked-overlay">
+                        <span class="lock-icon" aria-hidden="true">[LOCKED]</span>
+                        <p>สมาชิกเท่านั้น — ดูอารมณ์ข่าวและแนวโน้มราคา</p>
+                        <button type="button" class="btn-primary btn-sm" onclick="location.href='register.html'">สมัครฟรี</button>
+                    </div>
+                    <div class="panel-body blur-content" id="analysis-content">
+                        <p style="color: var(--text-muted);">เข้าสู่ระบบเพื่อโหลดการวิเคราะห์</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+    </section>
+
+    <div id="copilot-modal" class="modal-overlay copilot-modal" hidden role="dialog" aria-modal="true" aria-labelledby="copilot-title">
+        <section class="copilot-card">
+            <header class="copilot-modal-header">
+                <div>
+                    <p class="eyebrow">RESEARCH DESK</p>
+                    <h3 id="copilot-title">Sensei Copilot</h3>
+                    <p>อ้างอิงเฉพาะข้อมูล TradeSensei ของ <strong id="copilot-symbol">PTT.BK</strong></p>
+                </div>
+                <div class="copilot-header-actions">
+                    <button type="button" class="clear-history-btn" onclick="clearCopilotHistory()">ลบประวัติ</button>
+                    <button type="button" class="modal-close" onclick="closeCopilotModal()" aria-label="ปิด">×</button>
+                </div>
+            </header>
+            <div class="chat-history" id="chat-history">
+                <div class="message ai">สวัสดีครับ พิมพ์คำถามเกี่ยวกับหุ้นที่เลือกอยู่ได้เลยครับ</div>
+            </div>
+            <div class="chat-input-box">
+                <div id="chat-input" class="chat-editor" role="textbox" contenteditable="false" data-placeholder="เช่น แนวโน้มของหุ้นนี้เป็นอย่างไร?" aria-label="ข้อความถาม Copilot" aria-multiline="true" aria-disabled="true" tabindex="-1" autocapitalize="sentences" autocorrect="off" spellcheck="false"></div>
+                <button type="button" id="chat-send-btn" disabled onclick="sendCopilotMessage()">ส่งข้อความ</button>
+            </div>
+        </section>
+    </div>
+
+    <div id="password-modal" class="modal-overlay" hidden role="dialog" aria-labelledby="password-modal-title">
+        <div class="modal-card">
+            <button type="button" class="modal-close" onclick="closePasswordModal()" aria-label="ปิด">×</button>
+            <h3 id="password-modal-title">เปลี่ยนรหัสผ่าน</h3>
+            <label for="pwd-current">รหัสผ่านปัจจุบัน</label>
+            <input type="password" id="pwd-current" class="filter-select" autocomplete="current-password">
+            <label for="pwd-new">รหัสผ่านใหม่ (อย่างน้อย 8 ตัว พร้อมตัวเลข)</label>
+            <input type="password" id="pwd-new" class="filter-select" autocomplete="new-password">
+            <label for="pwd-confirm">ยืนยันรหัสผ่านใหม่</label>
+            <input type="password" id="pwd-confirm" class="filter-select" autocomplete="new-password">
+            <div class="modal-actions">
+                <button type="button" class="btn-primary" onclick="submitPasswordChange()">บันทึก</button>
+                <button type="button" class="btn-ghost" onclick="closePasswordModal()">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="backtest-modal" class="modal-overlay" hidden role="dialog" aria-labelledby="backtest-title">
+        <div class="modal-card">
+            <button type="button" class="modal-close" onclick="closeBacktestModal()" aria-label="ปิด">×</button>
+            <h3 id="backtest-title">Time Machine</h3>
+            <p class="auth-subtitle">เปรียบเทียบผลจากการถือหุ้น กับดอกเบี้ยเงินฝาก (~2.5%/ปี)</p>
+            <label for="backtest-amount">เงินลงทุนเริ่มต้น (บาท)</label>
+            <input type="number" id="backtest-amount" value="100000" min="1000" step="1000" class="filter-select">
+            <label for="backtest-months">ระยะเวลาย้อนหลัง (เดือน)</label>
+            <input type="number" id="backtest-months" value="6" min="1" max="24" class="filter-select">
+            <div id="backtest-result" class="backtest-result" style="display:none;"></div>
+            <div class="modal-actions">
+                <button type="button" class="btn-primary" onclick="runBacktest()">เริ่มจำลอง</button>
+                <button type="button" class="btn-ghost" onclick="closeBacktestModal()">ปิด</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

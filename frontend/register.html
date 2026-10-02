@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สมัครสมาชิก - TradeSensei</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="guest-mode login-page">
+    <nav class="top-nav">
+        <div class="nav-brand">
+            <button type="button" class="nav-toggle" id="nav-toggle" aria-label="เปิดเมนู" aria-expanded="false">☰</button>
+            <a href="index.html" class="logo"><span class="brand-mark">TS</span><span>TradeSensei</span></a>
+        </div>
+        <div class="nav-actions" id="nav-actions">
+            <a href="login.html" class="btn-outline nav-link-btn">เข้าสู่ระบบ</a>
+            <a href="index.html" class="btn-ghost nav-link-btn">หน้าหลัก</a>
+        </div>
+    </nav>
+
+    <main class="auth-container">
+        <div class="auth-card">
+            <h1>สร้างบัญชีใหม่</h1>
+            <p class="auth-subtitle">ใช้เวลาไม่ถึง 1 นาที — ปลดล็อกทุกฟีเจอร์ AI ทันทีหลังสมัคร</p>
+
+            <form id="register-form" class="auth-form">
+                <label for="first_name">ชื่อ <span class="required">*</span></label>
+                <input type="text" id="first_name" name="first_name" placeholder="ชื่อจริง" required autocomplete="given-name">
+
+                <label for="last_name">นามสกุล</label>
+                <input type="text" id="last_name" name="last_name" placeholder="ไม่บังคับ" autocomplete="family-name">
+
+                <label for="email">อีเมล <span class="required">*</span></label>
+                <input type="email" id="email" name="email" placeholder="you@example.com" required autocomplete="email">
+
+                <label for="password">รหัสผ่าน <span class="required">*</span></label>
+                <input type="password" id="password" name="password" placeholder="อย่างน้อย 8 ตัว พร้อมตัวเลข" required minlength="8" autocomplete="new-password">
+
+                <label for="confirm_password">ยืนยันรหัสผ่าน <span class="required">*</span></label>
+                <input type="password" id="confirm_password" name="confirm_password" placeholder="พิมพ์อีกครั้ง" required minlength="8" autocomplete="new-password">
+
+                <p id="register-error" class="auth-error" hidden role="alert"></p>
+
+                <button type="submit" class="btn-primary btn-large" id="register-submit">สมัครสมาชิก</button>
+            </form>
+
+            <div class="auth-divider"><span>หรือ</span></div>
+            <div id="google-signin-btn" class="google-signin-wrap"></div>
+
+            <p class="auth-footer">มีบัญชีแล้ว? <a href="login.html">เข้าสู่ระบบ</a></p>
+        </div>
+    </main>
+
+    <script src="auth.js"></script>
+    <script src="register.js"></script>
+</body>
+</html>
