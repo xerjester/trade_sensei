@@ -1,4 +1,4 @@
-const API_BASE = 'https://sustainability-advertisements-exhibit-later.trycloudflare.com';
+const API_BASE = 'https://tradesensei-backend.onrender.com';
 
 const AUTH_TOKEN_KEY = 'tradesensei_token';
 const AUTH_USER_KEY = 'tradesensei_user';
