@@ -32,6 +32,19 @@ def create_app():
     )
 
     @app.before_request
+    def handle_cors_preflight():
+        if request.method == 'OPTIONS':
+            origin = request.headers.get('Origin')
+            if origin and origin in Config.CORS_ORIGINS:
+                res = app.make_default_options_response()
+                res.headers['Access-Control-Allow-Origin'] = origin
+                res.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+                res.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+                res.headers['Access-Control-Max-Age'] = '600'
+                res.headers['Vary'] = 'Origin'
+                return res
+
+    @app.before_request
     def require_json_for_api_writes():
         """Reject ambiguous write payloads before they reach route logic."""
         if (
@@ -75,6 +88,13 @@ def create_app():
             response.headers['Pragma'] = 'no-cache'
         if not app.debug:
             response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+        origin = request.headers.get('Origin')
+        if origin and origin in Config.CORS_ORIGINS:
+            response.headers['Access-Control-Allow-Origin'] = origin
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+            response.headers['Access-Control-Max-Age'] = '600'
+            response.headers['Vary'] = 'Origin'
         return response
 
     db.init_app(app)

@@ -23,12 +23,28 @@ class Config:
     ).strip()
 
     FLASK_DEBUG = os.environ.get('FLASK_DEBUG', '0') == '1'
-    CORS_ORIGINS = tuple(
-        origin.strip().strip('"\'').rstrip('/') for origin in os.environ.get(
-            'CORS_ORIGINS',
-            'http://localhost:5500,http://127.0.0.1:5500,http://202.28.34.205:8080,http://202.28.34.205,https://202.28.34.205:8080'
-        ).split(',') if origin.strip().strip('"\'')
-    )
+    @staticmethod
+    def _parse_cors_origins() -> tuple[str, ...]:
+        origins = {
+            'http://localhost:5500',
+            'http://127.0.0.1:5500',
+            'http://202.28.34.205:8080',
+            'http://202.28.34.205',
+            'https://202.28.34.205:8080',
+            'https://202.28.34.205',
+        }
+        raw = os.environ.get('CORS_ORIGINS', '')
+        for item in raw.split(','):
+            clean = item.strip().strip('"\'').rstrip('/')
+            if clean:
+                origins.add(clean)
+                if '://' in clean:
+                    parts = clean.split('/')
+                    if len(parts) >= 3:
+                        origins.add(f'{parts[0]}//{parts[2]}')
+        return tuple(origins)
+
+    CORS_ORIGINS = _parse_cors_origins()
     MAX_CONTENT_LENGTH = int(os.environ.get('MAX_CONTENT_LENGTH', str(1024 * 1024)))
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(
         minutes=int(os.environ.get('JWT_ACCESS_TOKEN_MINUTES', '60'))
