@@ -10,7 +10,12 @@ health_bp = Blueprint('health', __name__)
 @health_bp.route('/', methods=['GET'])
 @limiter.exempt
 def health_check():
-    return jsonify({'status': 'success', 'message': 'Welcome to TradeSensei API'}), 200
+    from app.core.config import Config
+    return jsonify({
+        'status': 'success',
+        'message': 'Welcome to TradeSensei API',
+        'cors_origins': list(Config.CORS_ORIGINS),
+    }), 200
 
 
 @health_bp.route('/test-db', methods=['GET'])
