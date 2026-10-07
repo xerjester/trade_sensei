@@ -716,9 +716,61 @@ async function togglePrediction() {
     }
 }
 
+function initBacktestAmountInput() {
+    const input = document.getElementById('backtest-amount');
+    if (!input) return;
+
+    const formatInput = () => {
+        const rawValue = input.value;
+        const cursorPos = input.selectionStart ?? rawValue.length;
+
+        // Count how many numeric digits were before the cursor
+        const digitsBeforeCursor = rawValue.slice(0, cursorPos).replace(/\D/g, '').length;
+
+        // Get only digits
+        const digits = rawValue.replace(/\D/g, '');
+        if (!digits) {
+            input.value = '';
+            return;
+        }
+
+        // Format with thousands comma
+        const formatted = Number(digits).toLocaleString('en-US');
+        input.value = formatted;
+
+        // Restore cursor position accurately
+        let newPos = formatted.length;
+        let count = 0;
+        for (let i = 0; i < formatted.length; i++) {
+            if (/\d/.test(formatted[i])) {
+                count++;
+            }
+            if (count === digitsBeforeCursor) {
+                newPos = i + 1;
+                break;
+            }
+        }
+        if (digitsBeforeCursor === 0) newPos = 0;
+        input.setSelectionRange(newPos, newPos);
+    };
+
+    if (!input.dataset.commaBound) {
+        input.dataset.commaBound = 'true';
+        input.addEventListener('input', formatInput);
+    }
+
+    if (input.value && !input.value.includes(',')) {
+        const digits = input.value.replace(/\D/g, '');
+        if (digits) {
+            input.value = Number(digits).toLocaleString('en-US');
+        }
+    }
+}
+
 function openBacktestModal() {
     document.getElementById('backtest-modal').hidden = false;
     document.getElementById('backtest-result').innerHTML = '';
+    initBacktestAmountInput();
 }
 
 function closeBacktestModal() {
@@ -731,7 +783,8 @@ function toggleTimeMachine() {
 }
 
 async function runBacktest() {
-    const amount = parseFloat(document.getElementById('backtest-amount').value);
+    const rawAmount = (document.getElementById('backtest-amount').value || '').replace(/,/g, '').trim();
+    const amount = parseFloat(rawAmount);
     const months = parseInt(document.getElementById('backtest-months').value, 10);
     const resultEl = document.getElementById('backtest-result');
     if (!Number.isFinite(amount) || amount < 1000 || !Number.isInteger(months) || months < 1 || months > 24) {
@@ -757,10 +810,17 @@ async function runBacktest() {
         }
         const d = result.data;
         resultEl.replaceChildren();
+
+        const profitLabel = d.stock.profit >= 0 ? 'กำไร' : 'ขาดทุน';
+        const formattedProfit = Math.abs(d.stock.profit).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const formattedFinalStock = d.stock.final_value.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const formattedDepositProfit = Math.abs(d.deposit_benchmark.profit).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const formattedDepositFinal = d.deposit_benchmark.final_value.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
         [
             `${d.symbol} (${d.period.start_date} → ${d.period.end_date})`,
-            `หุ้น: ${d.stock.return_pct >= 0 ? '+' : ''}${d.stock.return_pct}% (กำไร ${d.stock.profit.toLocaleString()} บาท)`,
-            `เงินฝาก ${d.deposit_benchmark.annual_rate_pct}%: ${d.deposit_benchmark.return_pct >= 0 ? '+' : ''}${d.deposit_benchmark.return_pct}%`,
+            `หุ้น: ${d.stock.return_pct >= 0 ? '+' : ''}${d.stock.return_pct}% (${profitLabel} ${formattedProfit} บาท · รวม ${formattedFinalStock} บาท)`,
+            `เงินฝาก ${d.deposit_benchmark.annual_rate_pct}%: ${d.deposit_benchmark.return_pct >= 0 ? '+' : ''}${d.deposit_benchmark.return_pct}% (ดอกเบี้ย +${formattedDepositProfit} บาท · รวม ${formattedDepositFinal} บาท)`,
             d.verdict,
         ].forEach((text, index) => {
             const paragraph = document.createElement('p');
@@ -1243,5 +1303,6 @@ window.onload = async () => {
     if (isMember()) fetchDeepAnalysis(currentSymbol);
     if (isMember()) loadCopilotHistory();
     initLandingInteractions();
+    initBacktestAmountInput();
 };
 
