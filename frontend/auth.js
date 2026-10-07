@@ -1,13 +1,27 @@
+// =============================================================================
+// TradeSensei — Authentication & Shared UI Interaction Utilities
+// ระบบจัดการการยืนยันตัวตน Session และลูกเล่นปฏิสัมพันธ์หน้าจอส่วนกลาง
+// =============================================================================
+
 const API_BASE = 'https://tradesensei-backend.onrender.com';
 
 const AUTH_TOKEN_KEY = 'tradesensei_token';
 const AUTH_USER_KEY = 'tradesensei_user';
 
+/**
+ * บันทึก Session การเข้าสู่ระบบ (JWT Access Token และข้อมูลผู้ใช้) ลงใน LocalStorage
+ * @param {string} accessToken - โทเคน JWT สำหรับใช้ยืนยันสิทธิ์ในคำขอ API
+ * @param {object} user - อ็อบเจกต์ข้อมูลโปรไฟล์ของผู้ใช้งาน
+ */
 function setAuthSession(accessToken, user) {
     localStorage.setItem(AUTH_TOKEN_KEY, accessToken);
     localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
 }
 
+/**
+ * ดึงข้อมูลโปรไฟล์ผู้ใช้งานที่บันทึกไว้ใน LocalStorage
+ * @returns {object|null} ข้อมูลผู้ใช้ในรูปแบบ Object หรือ null หากยังไม่ได้ล็อกอิน
+ */
 function getStoredUser() {
     const raw = localStorage.getItem(AUTH_USER_KEY);
     if (!raw) return null;
@@ -18,11 +32,20 @@ function getStoredUser() {
     }
 }
 
+/**
+ * ล้างข้อมูล Session ทั้งหมดออกจาก LocalStorage (ใช้เมื่อออกจากระบบ / Logout)
+ */
 function clearAuthSession() {
     localStorage.removeItem(AUTH_TOKEN_KEY);
     localStorage.removeItem(AUTH_USER_KEY);
 }
 
+/**
+ * นำทางผู้ใช้งานไปยังหน้าเว็บที่สอดคล้องกับบทบาทและสิทธิ์ (Role)
+ * - สิทธิ์ผู้ดูแลระบบ (admin) -> นำทางไปหน้า admin.html
+ * - สิทธิ์สมาชิกทั่วไป (member) -> นำทางไปหน้า index.html
+ * @param {object} user - ข้อมูลผู้ใช้ที่มีฟิลด์ role
+ */
 function redirectByRole(user) {
     if (user.role === 'admin') {
         window.location.href = 'admin.html';
@@ -31,6 +54,11 @@ function redirectByRole(user) {
     }
 }
 
+/**
+ * สร้างส่วนหัว HTTP Headers สำหรับคำขอ API โดยจะแนบ Bearer Token ให้อัตโนมัติหากมี Session
+ * @param {object} extra - ส่วนหัวเพิ่มเติมที่ต้องการส่งร่วมด้วย
+ * @returns {object} อ็อบเจกต์ Headers พร้อมใช้งานสำหรับคำขอ fetch()
+ */
 function buildAuthHeaders(extra = {}) {
     const token = localStorage.getItem(AUTH_TOKEN_KEY);
     return {
@@ -40,22 +68,36 @@ function buildAuthHeaders(extra = {}) {
     };
 }
 
+/**
+ * ส่งคำขอ HTTP Request (Fetch API) ไปยัง Backend พร้อมแนบ Headers การยืนยันตัวตนให้อัตโนมัติ
+ * @param {string} url - ที่อยู่ API Endpoint
+ * @param {object} options - ออปชันเสริม เช่น method, body, headers
+ * @returns {Promise<Response>} คำตอบดิบจากเซิร์ฟเวอร์
+ */
 async function apiFetch(url, options = {}) {
     const headers = buildAuthHeaders(options.headers || {});
     const response = await fetch(url, { ...options, headers });
     return response;
 }
 
-// Backwards-compatible name used by member-only dashboard actions.
-// Keep authentication behavior in one place so protected requests always
-// receive the same bearer token and JSON headers.
+// ตัวแปรอ้างอิง authFetch ชี้ไปที่ apiFetch เพื่อรองรับโค้ดในหน้า Dashboard และการยิง API ที่ต้องตรวจสอบสิทธิ์
 const authFetch = apiFetch;
 
+/**
+ * ส่งคำขอ HTTP Request และแปลงผลลัพธ์ที่ตอบกลับเป็น JSON อัตโนมัติ
+ * @param {string} url - ที่อยู่ API Endpoint
+ * @param {object} options - ออปชันเสริม
+ * @returns {Promise<any>} ข้อมูลผลลัพธ์ในรูปแบบ JSON
+ */
 async function apiJson(url, options = {}) {
     const response = await apiFetch(url, options);
     return response.json();
 }
 
+/**
+ * ดึงข้อมูลการตั้งค่าความปลอดภัยและการล็อกอินจาก Backend (เช่น ตรวจสอบว่าเปิดใช้ Google OAuth หรือไม่)
+ * @returns {Promise<object>} อ็อบเจกต์สถานะการตั้งค่า { google_login_enabled, google_client_id }
+ */
 async function fetchAuthConfig() {
     try {
         const result = await apiJson(`${API_BASE}/api/auth/config`);
@@ -68,6 +110,11 @@ async function fetchAuthConfig() {
     return { google_login_enabled: false, google_client_id: null };
 }
 
+/**
+ * จัดการ Credential Token ที่ได้รับจาก Google Identity Services
+ * ส่งไปตรวจสอบความถูกต้องกับ Backend เพื่อยืนยันตัวตนและบันทึก Session
+ * @param {object} response - อ็อบเจกต์คำตอบจาก Google ที่มีฟิลด์ credential
+ */
 function handleGoogleCredential(response) {
     const credential = response.credential;
     if (!credential) return;
@@ -98,6 +145,11 @@ function handleGoogleCredential(response) {
         });
 }
 
+/**
+ * กำหนดค่าและแสดงผลปุ่ม "ลงชื่อเข้าใช้ด้วย Google" (Google Sign-In Button)
+ * หากยังไม่ได้ตั้งค่า Google Client ID จริงใน .env จะแสดงปุ่มแนะนำการตั้งค่าและปุ่มล็อกอิน Demo ให้แทน
+ * @param {string} containerId - ID ของ HTML Element ที่จะแสดงปุ่ม
+ */
 async function initGoogleSignIn(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -169,6 +221,10 @@ async function initGoogleSignIn(containerId) {
     document.head.appendChild(script);
 }
 
+/**
+ * จัดการการเปิด-ปิดเมนูนำทาง (Hamburger Menu) สำหรับหน้าจอมือถือและอุปกรณ์ขนาดเล็ก
+ * พร้อมเพิ่มการดักจับคลิกพื้นที่ภายนอกเพื่อหุบเมนูเก็บอัตโนมัติ
+ */
 function initNavToggle() {
     const toggle = document.getElementById('nav-toggle');
     const actions = document.getElementById('nav-actions');
@@ -198,6 +254,12 @@ function initNavToggle() {
     });
 }
 
+/**
+ * ส่งคำขอเปลี่ยนรหัสผ่านของผู้ใช้ไปยัง Backend API
+ * @param {string} currentPassword - รหัสผ่านเดิมที่ใช้งานอยู่
+ * @param {string} newPassword - รหัสผ่านใหม่ที่ต้องการตั้ง
+ * @returns {Promise<object>} ผลลัพธ์การเปลี่ยนรหัสผ่านจากเซิร์ฟเวอร์
+ */
 async function changeUserPassword(currentPassword, newPassword) {
     return apiJson(`${API_BASE}/api/auth/change-password`, {
         method: 'PUT',
@@ -208,6 +270,11 @@ async function changeUserPassword(currentPassword, newPassword) {
     });
 }
 
+/**
+ * แสดงกล่องข้อความแจ้งเตือนสั้นๆ (Toast Notification) ที่มุมหน้าจอ
+ * @param {string} message - ข้อความที่ต้องการแจ้งให้ผู้ใช้ทราบ
+ * @param {number} duration - ระยะเวลาแสดงผล (มิลลิวินาที, ค่าเริ่มต้น 3,500ms)
+ */
 function showToast(message, duration = 3500) {
     let container = document.getElementById('toast-container');
     if (!container) {
@@ -224,6 +291,10 @@ function showToast(message, duration = 3500) {
     setTimeout(() => toast.remove(), duration);
 }
 
+/**
+ * ติดตั้งปุ่มรูปดวงตา (Eye Icon) สำหรับกดดู/ซ่อนรหัสผ่านในทุกช่อง input type="password"
+ * มีระบบรักษาตำแหน่งเคอร์เซอร์ และป้องกันไม่ให้คีย์บอร์ดบนมือถือหุบลงขณะกด
+ */
 function initPasswordVisibility() {
     document.querySelectorAll('input[type="password"]').forEach((input) => {
         if (input.parentElement?.classList.contains('password-field')) return;
@@ -274,6 +345,9 @@ function initPasswordVisibility() {
     });
 }
 
+/**
+ * สร้างแถบแสดงความคืบหน้าการเลื่อนหน้าจอ (Scroll Progress Indicator) ที่ด้านบนสุดของหน้าต่าง
+ */
 function initScrollHelpers() {
     const indicator = document.createElement('div');
     indicator.className = 'scroll-indicator';
@@ -295,8 +369,12 @@ function initScrollHelpers() {
     updateScrollUI();
 }
 
-// Shared interaction layer for Dashboard, authentication, and admin pages.
-// It only decorates existing controls; application actions remain unchanged.
+/**
+ * จัดการเอฟเฟกต์แอนิเมชันและปฏิสัมพันธ์ของ UI ส่วนกลาง (Micro-interactions)
+ * - แสง Spotlight และเอฟเฟกต์เอียง 3D (Tilt) ขณะเลื่อนเมาส์ผ่านการ์ด
+ * - การค่อยๆ ปรากฏขึ้นเมื่อเลื่อนหน้าจอมาถึง (Scroll Reveal ด้วย IntersectionObserver)
+ * - ระลอกคลื่นน้ำ (Ripple Effect) เมื่อคลิกปุ่มต่างๆ
+ */
 function initInteractiveSurfaces() {
     const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     const surfaces = document.querySelectorAll(
@@ -352,6 +430,7 @@ function initInteractiveSurfaces() {
     });
 }
 
+// เริ่มต้นการทำงานของฟังก์ชัน UI เมื่อโหลด DOM เรียบร้อย
 document.addEventListener('DOMContentLoaded', () => {
     initNavToggle();
     initPasswordVisibility();
