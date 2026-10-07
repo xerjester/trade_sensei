@@ -814,7 +814,9 @@ function toggleTimeMachine() {
 
 // คำนวณผลตอบแทนย้อนหลัง เทียบระหว่างซื้อหุ้นตัวนี้กับฝากประจำธนาคาร
 async function runBacktest() {
-    const rawAmount = (document.getElementById('backtest-amount').value || '').replace(/,/g, '').trim();
+    const rawAmount = (document.getElementById('backtest-amount')?.value || '')
+        .replace(/[,\s，]/g, '')
+        .trim();
     const amount = parseFloat(rawAmount);
     const months = parseInt(document.getElementById('backtest-months').value, 10);
     const resultEl = document.getElementById('backtest-result');

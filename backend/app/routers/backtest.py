@@ -19,10 +19,15 @@ def run_backtest(symbol):
     if not symbol:
         return jsonify({'status': 'error', 'message': 'รูปแบบชื่อย่อหุ้นไม่ถูกต้อง'}), 400
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
     try:
-        months = int(data.get('months', 6))
-        initial_amount = float(data.get('initial_amount', 100000))
+        raw_months = data.get('months', 6)
+        months = int(str(raw_months).strip()) if raw_months is not None else 6
+
+        raw_amount = data.get('initial_amount', 100000)
+        if isinstance(raw_amount, str):
+            raw_amount = raw_amount.replace(',', '').replace(' ', '').strip()
+        initial_amount = float(raw_amount)
     except (TypeError, ValueError):
         return jsonify({'status': 'error', 'message': 'รูปแบบเงินลงทุนหรือระยะเวลาไม่ถูกต้อง'}), 400
 

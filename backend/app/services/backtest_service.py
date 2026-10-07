@@ -18,8 +18,22 @@ def run_backtest(
     if not stock:
         raise ValueError('ไม่พบข้อมูลหุ้นในระบบ')
 
-    months = max(1, min(months, 24))
-    initial_amount = max(1000, float(initial_amount))
+    if isinstance(months, str):
+        try:
+            months = int(str(months).strip())
+        except (ValueError, TypeError):
+            months = 6
+    months = max(1, min(int(months), 24))
+
+    # รองรับทั้งตัวเลข float/int และข้อความที่มีคอมม่าคั่น เช่น "10,000" หรือ "10000"
+    if isinstance(initial_amount, str):
+        initial_amount = initial_amount.replace(',', '').replace(' ', '').strip()
+    try:
+        initial_amount = float(initial_amount)
+    except (TypeError, ValueError):
+        raise ValueError('รูปแบบเงินลงทุนเริ่มต้นไม่ถูกต้อง')
+
+    initial_amount = max(1000.0, float(initial_amount))
 
     cutoff = datetime.utcnow().date() - timedelta(days=months * 30)
     raw_prices = (
