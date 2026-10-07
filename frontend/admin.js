@@ -1,3 +1,4 @@
+// เช็กว่าเป็นแอดมินไหม ถ้าไม่ใช่เตะกลับไปหน้า login หรือหน้าแรก
 function requireAdminAuth() {
     const token = localStorage.getItem('tradesensei_token');
     const userRaw = localStorage.getItem('tradesensei_user');
@@ -23,6 +24,7 @@ function requireAdminAuth() {
     }
 }
 
+// แนบ token ใส่ header ไว้ใช้เวลายิง API แอดมิน
 function authHeaders() {
     const token = localStorage.getItem('tradesensei_token');
     return {
@@ -31,6 +33,7 @@ function authHeaders() {
     };
 }
 
+// แปลงตัวอักษรพิเศษป้องกันโดน XSS บนหน้าแอดมิน
 function escapeAdminHtml(value) {
     return String(value ?? '')
         .replaceAll('&', '&amp;')
@@ -40,6 +43,7 @@ function escapeAdminHtml(value) {
         .replaceAll("'", '&#039;');
 }
 
+// เพิ่มบรรทัดข้อความลงกล่อง log ด้านล่าง พร้อมเลื่อนลงล่างสุด
 function appendLogLine(message) {
     const logWin = document.getElementById('log-window');
     const line = document.createElement('div');
@@ -48,6 +52,7 @@ function appendLogLine(message) {
     logWin.scrollTop = logWin.scrollHeight;
 }
 
+// ดึงรายชื่อหุ้นทั้งหมดมาใส่ในตารางจัดการหุ้น
 async function loadStocksAdmin() {
     const response = await fetch(`${API_BASE}/api/stocks`);
     const result = await response.json();
@@ -68,11 +73,12 @@ async function loadStocksAdmin() {
         tbody.appendChild(tr);
     });
 
-    // Keep the operations overview in sync with the master-data table.
+    // อัปเดตตัวเลขจำนวนหุ้นบนการ์ดสรุป
     const stockCount = document.getElementById('admin-stock-count');
     if (stockCount) stockCount.textContent = result.data.length;
 }
 
+// เพิ่มหุ้นใหม่เข้าสู่ระบบ
 async function addStock() {
     const symbol = document.getElementById('new-symbol').value.trim();
     const name = document.getElementById('new-name').value.trim();
@@ -96,6 +102,7 @@ async function addStock() {
     }
 }
 
+// ลบหุ้นออกจากระบบ (ถามยืนยันก่อนลบ)
 async function deleteStock(symbol) {
     if (!confirm(`ยืนยันการลบหุ้น ${symbol} ออกจากระบบ?`)) return;
 
@@ -108,6 +115,7 @@ async function deleteStock(symbol) {
     loadStocksAdmin();
 }
 
+// สั่งรันงานเบื้องหลัง เช่น อัปเดตราคาหรือดึงข่าว แล้วพ่นผลลัพธ์ลงกล่อง log
 async function runTask(task) {
     appendLogLine(`[Action] เริ่มรันคำสั่ง ${task}...`);
 
@@ -125,10 +133,12 @@ async function runTask(task) {
     }
 }
 
+// สั่งเทรนโมเดล AI พยากรณ์ราคาหุ้นใหม่
 async function trainModels() {
     await runTask('train-models');
 }
 
+// โหลดรายชื่อผู้ใช้ทั้งหมดมาแสดงในตารางจัดการสมาชิก
 async function loadUsers() {
     const tbody = document.getElementById('users-table-body');
     if (!tbody) return;
@@ -168,7 +178,7 @@ async function loadUsers() {
             tbody.appendChild(tr);
         });
 
-        // The header is a quick readout, while the table remains the source of detail.
+        // อัปเดตตัวเลขจำนวนผู้ใช้บนการ์ดสรุป
         const userCount = document.getElementById('admin-user-count');
         if (userCount) userCount.textContent = result.data.length;
     } catch {
@@ -178,6 +188,7 @@ async function loadUsers() {
 
 let usersCache = [];
 
+// เปิดหน้าต่างแก้ไขข้อมูลผู้ใช้
 async function openUserEdit(userId) {
     try {
         const response = await fetch(`${API_BASE}/api/admin/users`, { headers: authHeaders() });
@@ -202,10 +213,12 @@ async function openUserEdit(userId) {
     }
 }
 
+// ปิดหน้าต่างแก้ไขข้อมูลผู้ใช้
 function closeUserEditModal() {
     document.getElementById('user-edit-modal').hidden = true;
 }
 
+// บันทึกข้อมูลผู้ใช้ที่แก้ไข ส่งไปอัปเดตที่เซิร์ฟเวอร์
 async function saveUserEdit() {
     const userId = document.getElementById('edit-user-id').value;
     const payload = {
@@ -232,6 +245,7 @@ async function saveUserEdit() {
     }
 }
 
+// ลบผู้ใช้ออกจากระบบ (ถามยืนยันก่อนลบ)
 async function deleteUser(userId, email) {
     if (!confirm(`ยืนยันการลบผู้ใช้ ${email}?`)) return;
 
@@ -244,6 +258,7 @@ async function deleteUser(userId, email) {
     if (result.status === 'success') loadUsers();
 }
 
+// เปิดหน้าต่างเปลี่ยนรหัสผ่านแอดมิน
 function openPasswordModal() {
     document.getElementById('pwd-current').value = '';
     document.getElementById('pwd-new').value = '';
@@ -251,10 +266,12 @@ function openPasswordModal() {
     document.getElementById('password-modal').hidden = false;
 }
 
+// ปิดหน้าต่างเปลี่ยนรหัสผ่านแอดมิน
 function closePasswordModal() {
     document.getElementById('password-modal').hidden = true;
 }
 
+// ตรวจความถูกต้องของรหัสผ่านใหม่ แล้วส่งเปลี่ยนรหัสผ่าน
 async function submitPasswordChange() {
     const current = document.getElementById('pwd-current').value;
     const newPwd = document.getElementById('pwd-new').value;
@@ -286,6 +303,7 @@ async function submitPasswordChange() {
     }
 }
 
+// ดึง log การทำงานของระบบ 25 รายการล่าสุดมาโชว์ในกล่อง log
 async function loadLogs() {
     const logWin = document.getElementById('log-window');
     try {
@@ -307,15 +325,17 @@ async function loadLogs() {
     }
 }
 
+// ออกจากระบบ ลบข้อมูล token ทิ้ง แล้วกลับไปหน้า login
 function logoutAdmin() {
     localStorage.removeItem('tradesensei_token');
     localStorage.removeItem('tradesensei_user');
     window.location.href = 'login.html';
 }
 
+// ตอนเปิดหน้าเว็บ เช็กสิทธิ์แอดมินก่อน ถ้าผ่านค่อยโหลดข้อมูลหุ้น ผู้ใช้ และ log มาแสดง
 window.onload = () => {
-    if (!requireAdminAuth()) return;   // redirect fired — stop all JS
-    document.body.hidden = false;      // show page only when auth confirmed
+    if (!requireAdminAuth()) return;   // ไม่ใช่แอดมิน หยุดทำงานทันที
+    document.body.hidden = false;      // ผ่านแล้ว ค่อยเปิดให้เห็นหน้าเว็บ
     loadStocksAdmin();
     loadUsers();
     loadLogs();

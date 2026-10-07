@@ -9,16 +9,19 @@ let chartRequestId = 0;
 const stockDataCache = new Map();
 const STOCK_CACHE_TTL_MS = 60000;
 
+// แปลงตัวอักษรพิเศษป้องกันโดน XSS
 function escapeHtml(value) {
     const element = document.createElement('div');
     element.textContent = String(value ?? '');
     return element.innerHTML;
 }
 
+// เช็กว่าเป็นสมาชิกทั่วไป (member) หรือไม่
 function isMember() {
     return isLoggedIn && currentUser && currentUser.role === 'member';
 }
 
+// เปิด/ปิดช่องพิมพ์แชต Copilot (ถ้าไม่ใช่ member จะกดพิมพ์ไม่ได้)
 function setCopilotEditorEnabled(enabled) {
     const editor = document.getElementById('chat-input');
     const button = document.getElementById('chat-send-btn');
@@ -31,6 +34,7 @@ function setCopilotEditorEnabled(enabled) {
     if (button) button.disabled = !enabled;
 }
 
+// ปิดเมนู hamburger บนจอมือถือ
 function closeNavMenu() {
     const actions = document.getElementById('nav-actions');
     const toggle = document.getElementById('nav-toggle');
@@ -41,22 +45,26 @@ function closeNavMenu() {
     }
 }
 
+// กำหนดธีมสีของหน้าเว็บ (ใช้ดาร์กโหมดเป็นหลัก)
 function applyTheme() {
     currentTheme = 'dark';
     document.body.classList.remove('light-theme');
     localStorage.setItem('tradesensei_theme', 'dark');
 }
 
+// สลับธีมสี
 function toggleTheme() {
     applyTheme();
 }
 
+// ล้างสถานะล็อกอินออกจากเครื่อง
 function clearLocalAuth() {
     clearAuthSession();
     currentUser = null;
     isLoggedIn = false;
 }
 
+// ล็อกปุ่มฟีเจอร์พรีเมียม (เส้นทำนาย, Backtest, Copilot, Timeframe) ถ้ายังไม่ได้ล็อกอิน
 function updateLockedControls() {
     const predictionBtn = document.getElementById('prediction-btn');
     const timeMachineBtn = document.getElementById('time-machine-btn');
@@ -77,6 +85,7 @@ function updateLockedControls() {
     });
 }
 
+// ปรับ UI หน้าเว็บตามสถานะล็อกอิน เช่น สลับปุ่มเข้าสู่ระบบ/ออกจากระบบ
 function applyAuthUI() {
     const body = document.body;
     const loginBtn = document.getElementById('login-btn');
@@ -121,11 +130,13 @@ function applyAuthUI() {
     }
 }
 
+// กดไปหน้าสมัครสมาชิก
 function goToRegister() {
     closeNavMenu();
     window.location.href = 'register.html';
 }
 
+// เปิด popup เปลี่ยนรหัสผ่านของสมาชิก
 function openPasswordModal() {
     closeNavMenu();
     const modal = document.getElementById('password-modal');
@@ -136,11 +147,13 @@ function openPasswordModal() {
     modal.hidden = false;
 }
 
+// ปิด popup เปลี่ยนรหัสผ่าน
 function closePasswordModal() {
     const modal = document.getElementById('password-modal');
     if (modal) modal.hidden = true;
 }
 
+// ตรวจรหัสผ่านใหม่แล้วส่งไปบันทึกที่เซิร์ฟเวอร์
 async function submitPasswordChange() {
     const current = document.getElementById('pwd-current').value;
     const newPwd = document.getElementById('pwd-new').value;
@@ -172,6 +185,7 @@ async function submitPasswordChange() {
     }
 }
 
+// ปุ่มล็อกอิน/ออกจากระบบบน navbar กดแล้วสลับสถานะ
 function handleAuthButton() {
     closeNavMenu();
     if (isLoggedIn) {
@@ -185,6 +199,7 @@ function handleAuthButton() {
     window.location.href = 'login.html';
 }
 
+// อ่าน token ตอนโหลดหน้าเว็บ เพื่อดูว่าผู้ใช้ล็อกอินอยู่ไหม
 function initAuthFromStorage() {
     const token = localStorage.getItem('tradesensei_token');
     currentUser = getStoredUser();
@@ -210,10 +225,12 @@ function initAuthFromStorage() {
     applyAuthUI();
 }
 
+// เลื่อนหน้าจอลงมาที่ส่วนกระดานเทรด (Dashboard)
 function scrollToDashboard() {
     document.getElementById('app-dashboard').scrollIntoView({ behavior: 'smooth' });
 }
 
+// ดึงข้อมูลผลการทำนายราคาหุ้น 7 วันข้างหน้าจากโมเดล Prophet
 async function fetchPrediction(symbol) {
     if (!localStorage.getItem('tradesensei_token')) return null;
 
@@ -234,6 +251,7 @@ async function fetchPrediction(symbol) {
     }
 }
 
+// แสดงค่าสถิติความแม่นยำของโมเดล AI (MAE, Accuracy)
 function updatePredictionMetrics(quality) {
     const metrics = document.getElementById('prediction-metrics');
     const validation = quality?.validation;
@@ -252,12 +270,13 @@ function updatePredictionMetrics(quality) {
     });
 }
 
-// ✨ เปลี่ยนฟังก์ชันนี้เป็น async เพื่อรอรับข้อมูลจาก Backend
+// แสดงหรือซ่อนข้อความกำลังโหลดกราฟ
 function setChartLoading(visible) {
     const el = document.getElementById('chart-loading');
     if (el) el.classList.toggle('visible', visible);
 }
 
+// แปลงช่วงเวลา (1D, 1M, 1Y) เป็นจำนวนแท่งเทียนวันทำการ
 function getRangeTradingDays(rangeKey) {
     const map = {
         '1D': 1,
@@ -270,6 +289,7 @@ function getRangeTradingDays(rangeKey) {
     return map[rangeKey] || 132;
 }
 
+// ตัดข้อมูลราคาตามช่วงเวลาที่ผู้ใช้กดเลือก
 function getFilteredChartData(chartData, rangeKey) {
     const take = Math.min(getRangeTradingDays(rangeKey), chartData.dates.length);
     const start = Math.max(chartData.dates.length - take, 0);
@@ -282,6 +302,7 @@ function getFilteredChartData(chartData, rangeKey) {
     };
 }
 
+// คำนวณเส้นค่าเฉลี่ยเคลื่อนที่ SMA (เช่น SMA 20, SMA 50)
 function calculateSmaSeries(allCloses, windowSize) {
     if (!allCloses || allCloses.length === 0) return [];
 
@@ -314,12 +335,14 @@ function calculateSmaSeries(allCloses, windowSize) {
     });
 }
 
+// ไฮไลท์ปุ่มช่วงเวลาที่เลือกอยู่ (1D, 7D, 1M, ฯลฯ)
 function updateRangeButtons() {
     document.querySelectorAll('.range-btn').forEach((btn) => {
         btn.classList.toggle('active', btn.dataset.range === currentChartRange);
     });
 }
 
+// เปลี่ยนช่วงเวลากราฟ (ฟังก์ชันนี้ใช้ได้เฉพาะสมาชิก)
 function setChartRange(rangeKey) {
     if (!isMember()) {
         showToast('ช่วงเวลา 1D/7D/1M/6M/1Y/2Y สำหรับสมาชิกเท่านั้น');
@@ -330,6 +353,7 @@ function setChartRange(rangeKey) {
     drawChart(currentSymbol, isPredictionEnabled);
 }
 
+// ฟังก์ชันหลักสำหรับวาดกราฟแท่งเทียนด้วย Plotly (รวมเส้นทำนาย AI และ SMA)
 async function drawChart(symbol, showAI = false) {
     const requestId = ++chartRequestId;
     let chartData;
@@ -690,6 +714,7 @@ async function drawChart(symbol, showAI = false) {
     Plotly.newPlot('chart-container', data, layout, config);
 }
 
+// ตรวจสอบสถานะสมาชิก ถ้ายังไม่ล็อกอินจะแจ้งเตือนให้เข้าสู่ระบบก่อน
 function requireMember(featureName) {
     if (!isMember()) {
         alert(`${featureName} สำหรับสมาชิกเท่านั้น กรุณาเข้าสู่ระบบหรือสมัครสมาชิก`);
@@ -698,6 +723,7 @@ function requireMember(featureName) {
     return true;
 }
 
+// กดปุ่มเปิด/ปิดเส้นทำนาย AI บนกราฟแท่งเทียน
 async function togglePrediction() {
     if (!requireMember('เส้นทำนาย AI')) return;
 
@@ -716,6 +742,7 @@ async function togglePrediction() {
     }
 }
 
+// จัดรูปแบบช่องกรอกเงินลงทุน ใส่คอมม่าคั่นหลักพัน (,) อัตโนมัติ
 function initBacktestAmountInput() {
     const input = document.getElementById('backtest-amount');
     if (!input) return;
@@ -767,21 +794,25 @@ function initBacktestAmountInput() {
     }
 }
 
+// เปิด popup เครื่องมือจำลองผลตอบแทน Time Machine
 function openBacktestModal() {
     document.getElementById('backtest-modal').hidden = false;
     document.getElementById('backtest-result').innerHTML = '';
     initBacktestAmountInput();
 }
 
+// ปิด popup จำลองผลตอบแทน
 function closeBacktestModal() {
     document.getElementById('backtest-modal').hidden = true;
 }
 
+// กดเปิด Time Machine (ต้องเป็นสมาชิกเท่านั้น)
 function toggleTimeMachine() {
     if (!requireMember('Time Machine')) return;
     openBacktestModal();
 }
 
+// คำนวณผลตอบแทนย้อนหลัง เทียบระหว่างซื้อหุ้นตัวนี้กับฝากประจำธนาคาร
 async function runBacktest() {
     const rawAmount = (document.getElementById('backtest-amount').value || '').replace(/,/g, '').trim();
     const amount = parseFloat(rawAmount);
@@ -833,6 +864,7 @@ async function runBacktest() {
     }
 }
 
+// ดึงผลวิเคราะห์เจาะลึก (อารมณ์ข่าว TextBlob + แนวโน้มโมเดล Prophet)
 async function fetchDeepAnalysis(symbol) {
     if (!isMember()) return;
     const container = document.getElementById('analysis-content');
@@ -885,6 +917,7 @@ async function fetchDeepAnalysis(symbol) {
     }
 }
 
+// ส่งคำถามคุยกับ Sensei Copilot (AI ผู้ช่วยวิเคราะห์หุ้น)
 async function sendCopilotMessage() {
     if (!requireMember('Sensei Copilot')) return;
     const input = document.getElementById('chat-input');
@@ -934,6 +967,7 @@ async function sendCopilotMessage() {
     history.scrollTop = history.scrollHeight;
 }
 
+// เปิดหน้าต่างคุยกับ Sensei Copilot
 function openCopilotModal() {
     if (!requireMember('Sensei Copilot')) return;
     const modal = document.getElementById('copilot-modal');
@@ -945,11 +979,13 @@ function openCopilotModal() {
     document.getElementById('chat-input')?.focus();
 }
 
+// ปิดหน้าต่าง Copilot
 function closeCopilotModal() {
     const modal = document.getElementById('copilot-modal');
     if (modal) modal.hidden = true;
 }
 
+// ล้างประวัติการคุยกับ Copilot ทั้งหมด
 async function clearCopilotHistory() {
     if (!isMember() || !confirm('ลบประวัติการสนทนาทั้งหมดของคุณใช่หรือไม่?')) return;
     const clearButton = document.querySelector('.clear-history-btn');
@@ -980,6 +1016,7 @@ async function clearCopilotHistory() {
     }
 }
 
+// จัดรูปแบบข้อความตอบกลับของ AI (แปลง Markdown, ใส่ป้าย Bullish/Bearish)
 function formatCopilotAiMessage(rawText) {
     if (!rawText) return '';
     let text = String(rawText);
@@ -1017,6 +1054,7 @@ function formatCopilotAiMessage(rawText) {
     return safeHtml;
 }
 
+// เพิ่มบอลลูนข้อความใหม่ลงในกล่องแชต
 function appendChatBubble(history, type, text, sentAt = '') {
     const bubble = document.createElement('div');
     bubble.className = `message ${type}`;
@@ -1034,6 +1072,7 @@ function appendChatBubble(history, type, text, sentAt = '') {
     history.appendChild(bubble);
 }
 
+// โหลดประวัติแชตเก่าที่เคยคุยไว้มาแสดง
 async function loadCopilotHistory() {
     if (!isMember()) return;
     const history = document.getElementById('chat-history');
@@ -1058,6 +1097,7 @@ async function loadCopilotHistory() {
     }
 }
 
+// เปลี่ยนไปดูหุ้นตัวที่เลือก อัปเดตกราฟ ข่าว และบทวิเคราะห์
 function loadStock(symbol, clickedEl) {
     currentSymbol = symbol;
     const copilotSymbol = document.getElementById('copilot-symbol');
@@ -1198,6 +1238,7 @@ async function fetchNews(symbol) {
     }
 }
 
+// ตรวจสอบความปลอดภัยของ URL ลิงก์ข่าวก่อนเปิด
 function getSafeExternalUrl(value) {
     try {
         const url = new URL(String(value || ''), window.location.origin);
@@ -1245,6 +1286,7 @@ document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') closeCopilotModal();
 });
 
+// เริ่มต้นลูกเล่นปุ่มและเอฟเฟกต์ไฟบนหน้าแรก (Landing Hero)
 function initLandingInteractions() {
     const landing = document.getElementById('landing-page');
     const actions = document.querySelectorAll('[data-landing-action]');

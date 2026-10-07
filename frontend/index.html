@@ -10,6 +10,7 @@
 <body class="guest-mode">
     <div class="toast-container" id="toast-container" aria-live="polite"></div>
 
+    <!-- แถบนำทางด้านบน (Navbar) เมนูล็อกอิน สมัครสมาชิก และเปลี่ยนรหัสผ่าน -->
     <nav class="top-nav">
         <div class="nav-brand">
             <button type="button" class="nav-toggle" id="nav-toggle" aria-label="เปิดเมนู" aria-expanded="false">☰</button>
@@ -23,6 +24,7 @@
         </div>
     </nav>
 
+    <!-- ส่วนหน้าแรก (Landing Hero) อธิบายวิธีใช้งาน 3 ขั้นตอน -->
     <section id="landing-page" class="landing-container">
         <div class="hero">
             <div class="hero-badge">MARKET INTELLIGENCE · THAILAND</div>
@@ -68,7 +70,9 @@
         </aside>
     </section>
 
+    <!-- ส่วน Dashboard หลักสำหรับดูกราฟและวิเคราะห์หุ้น -->
     <section id="app-dashboard" class="dashboard-container">
+        <!-- เมนูด้านซ้าย: ค้นหาหุ้น กรองหมวดหมู่ และรายชื่อหุ้นทั้งหมด -->
         <aside class="sidebar">
             <div class="sidebar-header">
                 <div class="section-title-row"><h3>รายการหุ้น</h3><span id="stock-count" class="item-count">—</span></div>
@@ -96,6 +100,7 @@
                 Member workspace — เลือก <strong>Forecast 7 days</strong> เพื่อดูการประมาณการจาก Prophet
             </div>
 
+            <!-- ส่วนหัวของกราฟ แสดงราคา สถิติแท่งเทียน และปุ่มเครื่องมือ AI / Backtest -->
             <header class="chart-header">
                 <div class="chart-title-block">
                     <div class="chart-symbol-row">
@@ -127,6 +132,7 @@
                     </button>
                 </div>
             </header>
+            <!-- ปุ่มเลือกช่วงเวลากราฟ (1D, 7D, 1M, 6M, 1Y, 2Y) -->
             <div class="chart-range-controls" id="chart-range-controls" aria-label="ช่วงเวลาของกราฟ">
                 <button type="button" class="range-btn" data-range="1D" onclick="setChartRange('1D')" title="Member only">1D</button>
                 <button type="button" class="range-btn" data-range="7D" onclick="setChartRange('7D')" title="Member only">7D</button>
@@ -137,10 +143,12 @@
             </div>
             <div id="prediction-metrics" class="prediction-metrics" hidden aria-live="polite"></div>
 
+            <!-- กล่องสำหรับวาดกราฟแท่งเทียนด้วย Plotly -->
             <div id="chart-container" class="chart-box">
                 <div class="chart-loading" id="chart-loading">กำลังโหลดกราฟ...</div>
             </div>
 
+            <!-- กล่องด้านล่าง: ข่าวตลาดล่าสุด และสรุปผลวิเคราะห์อารมณ์ข่าว TextBlob -->
             <div class="bottom-panels">
                 <div class="panel news-panel">
                     <h3>ข่าวและบริบทตลาด</h3>
@@ -169,6 +177,7 @@
 
     </section>
 
+    <!-- หน้าต่าง Popup คุยกับ Sensei Copilot (AI ผู้ช่วยวิเคราะห์หุ้น) -->
     <div id="copilot-modal" class="modal-overlay copilot-modal" hidden role="dialog" aria-modal="true" aria-labelledby="copilot-title">
         <section class="copilot-card">
             <header class="copilot-modal-header">
@@ -192,6 +201,7 @@
         </section>
     </div>
 
+    <!-- หน้าต่าง Popup สำหรับเปลี่ยนรหัสผ่านของสมาชิก -->
     <div id="password-modal" class="modal-overlay" hidden role="dialog" aria-labelledby="password-modal-title">
         <div class="modal-card">
             <button type="button" class="modal-close" onclick="closePasswordModal()" aria-label="ปิด">×</button>
@@ -209,6 +219,7 @@
         </div>
     </div>
 
+    <!-- หน้าต่าง Popup เครื่องมือจำลองผลตอบแทน Time Machine (Backtest) -->
     <div id="backtest-modal" class="modal-overlay" hidden role="dialog" aria-labelledby="backtest-title">
         <div class="modal-card">
             <button type="button" class="modal-close" onclick="closeBacktestModal()" aria-label="ปิด">×</button>

@@ -5,6 +5,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from app.core.database import db
 
 
+# ตารางเก็บข้อมูลหุ้นและสินทรัพย์ (เช่น PTT.BK, หมวดหมู่, ชื่อบริษัท)
 class Stock(db.Model):
     __tablename__ = 'stocks'
     stock_id = db.Column(db.Integer, primary_key=True)
@@ -25,6 +26,7 @@ class Stock(db.Model):
     )
 
 
+# ตารางเก็บข้อมูลผู้ใช้ (อีเมล, รหัสผ่าน hash, สิทธิ์ member/admin)
 class User(db.Model):
     __tablename__ = 'users'
     user_id = db.Column(db.Integer, primary_key=True)
@@ -45,6 +47,7 @@ class User(db.Model):
     logs = db.relationship('SystemLog', backref='user', lazy=True)
 
 
+# ตารางเก็บประวัติราคาหุ้นย้อนหลังรายวัน (Open, High, Low, Close, Volume)
 class HistoricalPrice(db.Model):
     __tablename__ = 'historical_prices'
     price_id = db.Column(db.Integer, primary_key=True)
@@ -59,6 +62,7 @@ class HistoricalPrice(db.Model):
     __table_args__ = (db.UniqueConstraint('stock_id', 'date', name='uq_stock_date'),)
 
 
+# ตารางเก็บข้อมูลข่าวสารที่เกี่ยวข้องกับหุ้น
 class News(db.Model):
     __tablename__ = 'news'
     news_id = db.Column(db.Integer, primary_key=True)
@@ -73,6 +77,7 @@ class News(db.Model):
     )
 
 
+# ตารางเก็บผลวิเคราะห์อารมณ์ข่าว (คะแนนความรู้สึก, Positive/Negative)
 class NewsSentiment(db.Model):
     __tablename__ = 'news_sentiments'
     sentiment_id = db.Column(db.Integer, primary_key=True)
@@ -83,6 +88,7 @@ class NewsSentiment(db.Model):
     analyzed_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
+# ตารางเก็บผลการทำนายราคาหุ้นล่วงหน้าจากโมเดล Facebook Prophet
 class PricePrediction(db.Model):
     __tablename__ = 'price_predictions'
     prediction_id = db.Column(db.Integer, primary_key=True)
@@ -97,6 +103,7 @@ class PricePrediction(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
+# ตารางเก็บโครงสร้างโมเดล AI ที่เทรนแล้วของหุ้นแต่ละตัว
 class StockModel(db.Model):
     __tablename__ = 'stock_models'
     stockmodel_id = db.Column(db.Integer, primary_key=True)
@@ -105,6 +112,7 @@ class StockModel(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+# ตารางเก็บรายการหุ้นโปรดของผู้ใช้
 class UserFavorite(db.Model):
     __tablename__ = 'user_favorites'
     favorite_id = db.Column(db.Integer, primary_key=True)
@@ -115,6 +123,7 @@ class UserFavorite(db.Model):
     __table_args__ = (db.UniqueConstraint('user_id', 'stock_id', name='uq_user_stock'),)
 
 
+# ตารางเก็บประวัติการคุยกับ AI Copilot
 class ChatHistory(db.Model):
     __tablename__ = 'chat_history'
     chat_id = db.Column(db.Integer, primary_key=True)
@@ -125,8 +134,8 @@ class ChatHistory(db.Model):
     times = db.Column(db.DateTime, default=datetime.utcnow)
 
 
+# ตารางเก็บรหัส OTP สำหรับรีเซ็ตรหัสผ่าน (หมดอายุใน 10 นาที)
 class PasswordResetOtp(db.Model):
-    """Short-lived, single-use OTPs for the public forgot-password flow."""
     __tablename__ = 'password_reset_otps'
     reset_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id', ondelete='CASCADE'), nullable=False)
@@ -137,6 +146,7 @@ class PasswordResetOtp(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
 
+# ตารางบันทึกกิจกรรมและการทำงานของระบบ (System Logs)
 class SystemLog(db.Model):
     __tablename__ = 'system_logs'
     log_id = db.Column(db.Integer, primary_key=True)

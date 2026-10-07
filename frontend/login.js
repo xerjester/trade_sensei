@@ -1,9 +1,11 @@
+// แสดงข้อความ error บนฟอร์มเข้าสู่ระบบ
 function showLoginError(message) {
     const errorEl = document.getElementById('login-error');
     errorEl.textContent = message;
     errorEl.hidden = !message;
 }
 
+// แสดงข้อความแจ้งเตือนบนกล่องรีเซ็ตรหัสผ่าน
 function showResetMessage(message, isError = true) {
     const messageEl = document.getElementById('reset-password-message');
     messageEl.textContent = message;
@@ -11,6 +13,7 @@ function showResetMessage(message, isError = true) {
     messageEl.classList.toggle('auth-success', !isError);
 }
 
+// รีเซ็ตขั้นตอนลืมรหัสผ่านกลับไปที่ขั้นตอนแรก (ขอ OTP)
 function resetForgotPasswordSteps() {
     const titleEl = document.getElementById('forgot-password-title');
     const subtitleEl = document.getElementById('forgot-password-subtitle');
@@ -32,11 +35,13 @@ function resetForgotPasswordSteps() {
     showResetMessage('');
 }
 
+// ปิดกล่อง popup ลืมรหัสผ่าน
 function closeForgotPasswordModal() {
     document.getElementById('forgot-password-modal').hidden = true;
     resetForgotPasswordSteps();
 }
 
+// เปิด popup ลืมรหัสผ่าน ดึงอีเมลที่พิมพ์ค้างไว้มาใส่ให้อัตโนมัติ
 document.getElementById('forgot-password-btn').addEventListener('click', () => {
     resetForgotPasswordSteps();
     const resetEmail = document.getElementById('reset-email');
@@ -45,9 +50,10 @@ document.getElementById('forgot-password-btn').addEventListener('click', () => {
     resetEmail.focus();
 });
 
+// กดปุ่มปิด popup ลืมรหัสผ่าน
 document.getElementById('forgot-password-close').addEventListener('click', closeForgotPasswordModal);
 
-// ขั้นตอนที่ 1: ตรวจสอบอีเมลในระบบ และส่ง OTP
+// ขั้นตอนที่ 1: ส่งอีเมลไปขอรับรหัส OTP
 document.getElementById('request-otp-form').addEventListener('submit', async (event) => {
     event.preventDefault();
     showResetMessage('');
@@ -56,7 +62,7 @@ document.getElementById('request-otp-form').addEventListener('submit', async (ev
     button.disabled = true;
     button.textContent = 'กำลังตรวจสอบ...';
 
-    // ซ่อนฟอร์ม reset-password-form ไว้
+    // ซ่อนฟอร์มตั้งรหัสผ่านใหม่ไว้ก่อน
     document.getElementById('reset-password-form').hidden = true;
 
     try {
@@ -69,7 +75,7 @@ document.getElementById('request-otp-form').addEventListener('submit', async (ev
             return;
         }
 
-        // หากมีอีเมลในระบบ และส่ง OTP สำเร็จ -> เด้งมาหน้ากรอก OTP 6 ตัว (ขั้นตอนที่ 2)
+        // ส่ง OTP สำเร็จ -> เปลี่ยนไปหน้ากรอก OTP 6 ตัว (ขั้นตอนที่ 2)
         document.getElementById('forgot-password-title').textContent = 'กรอกรหัส OTP';
         document.getElementById('forgot-password-subtitle').textContent = `รหัส OTP 6 หลักถูกส่งไปยัง ${email} แล้ว (มีอายุ 10 นาที)`;
         document.getElementById('request-otp-form').hidden = true;
@@ -87,7 +93,7 @@ document.getElementById('request-otp-form').addEventListener('submit', async (ev
     }
 });
 
-// ขั้นตอนที่ 2: ตรวจสอบรหัส OTP 6 ตัว
+// ขั้นตอนที่ 2: ตรวจสอบรหัส OTP 6 ตัวที่กรอก
 const verifyOtpForm = document.getElementById('verify-otp-form');
 if (verifyOtpForm) {
     verifyOtpForm.addEventListener('submit', async (event) => {
@@ -116,7 +122,7 @@ if (verifyOtpForm) {
                 return;
             }
 
-            // ถ้ากรอก OTP ถูกต้อง -> เด้งไปหน้าตั้งรหัสผ่านใหม่ (ขั้นตอนที่ 3)
+            // OTP ถูกต้อง -> ไปหน้าตั้งรหัสผ่านใหม่ (ขั้นตอนที่ 3)
             document.getElementById('forgot-password-title').textContent = 'ตั้งรหัสผ่านใหม่';
             document.getElementById('forgot-password-subtitle').textContent = 'กำหนดรหัสผ่านใหม่สำหรับบัญชีของคุณ';
             document.getElementById('verify-otp-form').hidden = true;
@@ -132,7 +138,7 @@ if (verifyOtpForm) {
     });
 }
 
-// ปุ่มย้อนกลับไปเปลี่ยนอีเมล
+// ปุ่มย้อนกลับไปแก้อีเมล
 const changeEmailBtn = document.getElementById('change-email-btn');
 if (changeEmailBtn) {
     changeEmailBtn.addEventListener('click', () => {
@@ -141,7 +147,7 @@ if (changeEmailBtn) {
     });
 }
 
-// ปุ่มขอรหัสใหม่อีกครั้ง
+// ปุ่มขอรหัส OTP ใหม่อีกครั้ง
 const resendOtpBtn = document.getElementById('resend-otp-btn');
 if (resendOtpBtn) {
     resendOtpBtn.addEventListener('click', () => {
@@ -149,7 +155,7 @@ if (resendOtpBtn) {
     });
 }
 
-// ขั้นตอนที่ 3: ตั้งรหัสผ่านใหม่ (เมื่อ OTP ถูกต้อง)
+// ขั้นตอนที่ 3: ตั้งรหัสผ่านใหม่เมื่อ OTP ถูกต้อง
 document.getElementById('reset-password-form').addEventListener('submit', async (event) => {
     event.preventDefault();
     showResetMessage('');
@@ -194,6 +200,7 @@ document.getElementById('reset-password-form').addEventListener('submit', async 
     }
 });
 
+// ส่งอีเมลกับรหัสผ่านไปล็อกอิน
 document.getElementById('login-form').addEventListener('submit', async (event) => {
     event.preventDefault();
     showLoginError('');
@@ -230,12 +237,14 @@ document.getElementById('login-form').addEventListener('submit', async (event) =
     }
 });
 
+// ถ้าล็อกอินค้างไว้อยู่แล้ว ให้เด้งเข้าสู่ระบบตามสิทธิ์ทันที
 (function redirectIfAuthenticated() {
     const token = localStorage.getItem('tradesensei_token');
     const user = getStoredUser();
     if (token && user) redirectByRole(user);
 })();
 
+// ผูกปุ่มเข้าสู่ระบบด้วยบัญชี Google
 document.addEventListener('DOMContentLoaded', () => {
     initGoogleSignIn('google-signin-btn');
 });

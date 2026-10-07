@@ -3,6 +3,7 @@ from app.models import Stock, SystemLog, User
 from app.services.stock_service import get_stock_by_symbol
 
 
+# เพิ่มหุ้นตัวใหม่เข้าสู่ระบบ พร้อมดึงราคาและข่าวอัตโนมัติทันที
 def add_stock(symbol: str, company_name: str, category: str) -> str | None:
     symbol = symbol.strip().upper()
     if get_stock_by_symbol(symbol):
@@ -23,6 +24,7 @@ def add_stock(symbol: str, company_name: str, category: str) -> str | None:
     return None
 
 
+# ลบหุ้นออกจากระบบ พร้อมข้อมูลราคา ข่าว และโมเดลที่ผูกอยู่
 def delete_stock(symbol: str) -> str | None:
     stock = get_stock_by_symbol(symbol)
     if not stock:
@@ -32,6 +34,7 @@ def delete_stock(symbol: str) -> str | None:
     return None
 
 
+# บันทึกกิจกรรมการทำงานของผู้ใช้หรือระบบลงตาราง system_logs
 def log_system_action(action_type: str, description: str, user_id: int | None = None) -> None:
     db.session.add(
         SystemLog(action_type=action_type, description=description, user_id=user_id)
@@ -39,6 +42,7 @@ def log_system_action(action_type: str, description: str, user_id: int | None = 
     db.session.commit()
 
 
+# ดึงประวัติ log การทำงานของระบบมาแสดงบนหน้าจอ Admin
 def get_system_logs(
     limit: int = 30,
     user_id: int | None = None,

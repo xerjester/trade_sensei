@@ -1,3 +1,4 @@
+/* ธีมสีหลักและตัวแปรระบบ (รองรับทั้ง Dark Mode และ Light Mode) */
 :root {
     --bg-dark: #080D18;
     --bg-panel: rgba(18, 27, 46, 0.86);
@@ -59,7 +60,7 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
-/* —— Buttons —— */
+/* สไตล์ปุ่มกดต่างๆ เช่น ปุ่มหลัก ปุ่มเส้นขอบ และปุ่ม AI */
 button,
 .btn-primary,
 .btn-outline,
@@ -161,7 +162,7 @@ select:focus-visible {
     padding: 10px 20px;
 }
 
-/* —— Navbar —— */
+/* แถบเมนูด้านบน (Top Navbar) */
 .top-nav {
     display: flex;
     justify-content: space-between;
@@ -394,7 +395,7 @@ body.member-mode .user-badge {
     line-height: 1.6;
 }
 
-/* —— Dashboard layout —— */
+/* โครงสร้างหน้า Dashboard กระดานเทรด และแถบซ้าย (Sidebar) */
 .dashboard-container {
     display: flex;
     min-height: calc(100vh - var(--nav-height));

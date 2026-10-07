@@ -1,9 +1,11 @@
+// แสดงข้อความ error บนฟอร์มสมัครสมาชิก
 function showRegisterError(message) {
     const errorEl = document.getElementById('register-error');
     errorEl.textContent = message;
     errorEl.hidden = !message;
 }
 
+// ตรวจสอบข้อมูลและส่งสมัครสมาชิกใหม่
 document.getElementById('register-form').addEventListener('submit', async (event) => {
     event.preventDefault();
     showRegisterError('');
@@ -15,6 +17,7 @@ document.getElementById('register-form').addEventListener('submit', async (event
     const confirm_password = document.getElementById('confirm_password').value;
     const submitBtn = document.getElementById('register-submit');
 
+    // เช็กว่ารหัสผ่าน 2 ช่องตรงกันไหม
     if (password !== confirm_password) {
         showRegisterError('รหัสผ่านไม่ตรงกัน');
         return;
@@ -34,6 +37,7 @@ document.getElementById('register-form').addEventListener('submit', async (event
             return;
         }
 
+        // สมัครสำเร็จ เก็บ session แล้วพาไปหน้าแรก
         setAuthSession(result.access_token, result.user);
         sessionStorage.setItem('tradesensei_just_logged_in', '1');
         window.location.href = 'index.html';
@@ -46,12 +50,14 @@ document.getElementById('register-form').addEventListener('submit', async (event
     }
 });
 
+// ถ้าล็อกอินอยู่แล้ว ให้เด้งไปหน้าแรกตามสิทธิ์ทันที
 (function redirectIfAuthenticated() {
     const token = localStorage.getItem('tradesensei_token');
     const user = getStoredUser();
     if (token && user) redirectByRole(user);
 })();
 
+// ผูกปุ่มเข้าสู่ระบบด้วยบัญชี Google
 document.addEventListener('DOMContentLoaded', () => {
     initGoogleSignIn('google-signin-btn');
 });

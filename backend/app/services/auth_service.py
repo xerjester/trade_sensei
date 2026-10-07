@@ -17,6 +17,7 @@ OTP_RESEND_COOLDOWN_SECONDS = 60
 OTP_MAX_ATTEMPTS = 5
 
 
+# แปลงชื่อหรืออีเมลให้เป็นพิมพ์เล็ก ถ้าพิมพ์ 'admin' จะแปลงเป็นอีเมลแอดมินให้อัตโนมัติ
 def normalize_identifier(identifier: str) -> str:
     identifier = identifier.strip().lower()
     if identifier == 'admin':
@@ -24,6 +25,7 @@ def normalize_identifier(identifier: str) -> str:
     return identifier
 
 
+# ตรวจสอบอีเมลและรหัสผ่านเพื่อล็อกอิน ถ้าผ่านจะสร้าง JWT token ส่งกลับไป
 def login_user(email: str, password: str) -> tuple[dict | None, str | None]:
     user = User.query.filter_by(email=normalize_identifier(email)).first()
     if not user:
@@ -38,6 +40,7 @@ def login_user(email: str, password: str) -> tuple[dict | None, str | None]:
     }, None
 
 
+# สมัครสมาชิกใหม่ ตรวจสอบความถูกต้อง แฮชรหัสผ่าน แล้วบันทึกลงตาราง users
 def register_user(first_name: str, last_name: str, email: str, password: str) -> tuple[dict | None, str | None]:
     first_name = normalize_person_name(first_name, required=True)
     last_name = normalize_person_name(last_name)
@@ -65,10 +68,12 @@ def register_user(first_name: str, last_name: str, email: str, password: str) ->
     }, None
 
 
+# ดึงข้อมูลผู้ใช้จาก user_id
 def get_user_by_id(user_id: int) -> User | None:
     return db.session.get(User, user_id)
 
 
+# เปลี่ยนรหัสผ่านของผู้ใช้ (ต้องเช็กรหัสเดิมให้ผ่านก่อน)
 def change_password(
     user_id: int, current_password: str, new_password: str
 ) -> str | None:
@@ -96,6 +101,7 @@ def change_password(
     return None
 
 
+# ส่งอีเมลรหัส OTP 6 ตัวผ่านบริการ Resend
 def _send_reset_email(email: str, code: str) -> None:
     """Send a short-lived OTP via Resend; the API key stays server-side only."""
     if not Config.RESEND_API_KEY:
@@ -133,6 +139,7 @@ def _send_reset_email(email: str, code: str) -> None:
             raise
 
 
+# ขอรีเซ็ตรหัสผ่าน: สร้างรหัส OTP 6 หลัก แล้วส่งเข้าอีเมล (รหัสมีอายุ 10 นาที)
 def request_password_reset(email: str) -> tuple[bool, str]:
     """Validate user exists and issue/email one 6-digit OTP."""
     clean_email = normalize_identifier(email)
@@ -185,6 +192,7 @@ def request_password_reset(email: str) -> tuple[bool, str]:
     return True, 'ส่งรหัส OTP 6 หลักไปยังอีเมลของคุณเรียบร้อยแล้ว'
 
 
+# ตรวจสอบรหัส OTP 6 หลักว่าถูกต้องและยังไม่หมดอายุหรือไม่
 def verify_reset_otp(email: str, code: str) -> tuple[bool, str]:
     """Verify that an OTP is correct and valid without consuming it yet."""
     clean_code = str(code or '').strip()
@@ -217,6 +225,7 @@ def verify_reset_otp(email: str, code: str) -> tuple[bool, str]:
     return True, 'ยืนยันรหัส OTP ถูกต้อง'
 
 
+# ยืนยันรหัส OTP และตั้งรหัสผ่านใหม่ลงฐานข้อมูล
 def reset_password_with_otp(email: str, code: str, new_password: str) -> str | None:
     """Verify an unexpired OTP with attempt limiting, then rotate the password."""
     validation_error = password_error(new_password)

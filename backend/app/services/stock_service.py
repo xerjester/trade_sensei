@@ -5,10 +5,12 @@ from app.core.database import db
 from app.models import HistoricalPrice, News, Stock, SystemLog
 
 
+# ค้นหาข้อมูลหุ้นในฐานข้อมูลจากชื่อย่อ (เช่น PTT.BK)
 def get_stock_by_symbol(symbol: str) -> Stock | None:
     return Stock.query.filter_by(symbol=str(symbol).strip().upper()).first()
 
 
+# ดึงรายชื่อหุ้นทั้งหมดในระบบ
 def list_all_stocks() -> list[dict]:
     return [
         {
@@ -20,6 +22,7 @@ def list_all_stocks() -> list[dict]:
     ]
 
 
+# แปลงค่าตัวเลขทศนิยม ป้องกันค่า NaN หรือ Infinity ที่ทำให้ JSON พัง
 def _safe_float(value) -> float | None:
     """Convert a price value to float.
 
@@ -36,6 +39,7 @@ def _safe_float(value) -> float | None:
         return None
 
 
+# ดึงข้อมูลราคาย้อนหลัง OHLCV (Open, High, Low, Close) ของหุ้นสำหรับวาดกราฟ
 def get_ohlcv_series(symbol: str) -> dict | None:
     stock = get_stock_by_symbol(symbol)
     if not stock:
@@ -58,6 +62,7 @@ def get_ohlcv_series(symbol: str) -> dict | None:
     }
 
 
+# ดึงข่าวล่าสุดของหุ้นตัวนั้นๆ (ถ้ามีน้อยกว่า 2 ข่าว จะดึงข่าวสดเพิ่มให้อัตโนมัติ)
 def get_news_for_symbol(symbol: str, limit: int = 5) -> list[dict] | None:
     stock = get_stock_by_symbol(symbol)
     if not stock:
@@ -104,6 +109,7 @@ def get_news_for_symbol(symbol: str, limit: int = 5) -> list[dict] | None:
     ]
 
 
+# ดึงประวัติราคาหุ้นย้อนหลัง 2 ปีจาก Yahoo Finance เข้าฐานข้อมูล
 def fetch_stock_from_yfinance(symbol: str) -> tuple[int, str | None]:
     """Pull 2y OHLCV from Yahoo Finance into DB. Returns (new_records, error)."""
     symbol = str(symbol).strip().upper()

@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="admin-page" hidden>
+    <!-- แถบนำทางด้านบน สำหรับผู้ดูแลระบบ -->
     <nav class="top-nav">
         <div class="nav-brand">
             <button type="button" class="nav-toggle" id="nav-toggle" aria-label="เปิดเมนู" aria-expanded="false">☰</button>
@@ -20,6 +21,7 @@
     </nav>
 
     <div class="admin-wrap">
+        <!-- ส่วนหัวและสรุปภาพรวมระบบ (จำนวนหุ้น, สมาชิก, สถานะ) -->
         <header class="admin-hero">
             <div class="admin-hero-copy">
                 <p class="eyebrow">SYSTEM OPERATIONS</p>
@@ -43,6 +45,7 @@
             </aside>
         </header>
 
+        <!-- กล่องแสดงข้อความ Activity Log การทำงานของระบบ -->
         <section class="control-card admin-log-card">
             <div class="admin-log-heading">
                 <div>
@@ -56,6 +59,7 @@
         </section>
 
         <div class="admin-grid">
+            <!-- ส่วนจัดการข้อมูลหุ้น (เพิ่มหุ้น / ลบหุ้น) -->
             <section class="control-card admin-stock-card">
                 <div class="admin-card-heading">
                     <div>
@@ -79,6 +83,7 @@
                 </div>
             </section>
 
+            <!-- ส่วนสั่งรันคำสั่งอัตโนมัติ (ดึงราคาและข่าว / เทรนโมเดล AI) -->
             <section class="admin-operations">
                 <div class="control-card admin-action-card">
                     <p class="section-kicker">AUTOMATION</p>
@@ -96,6 +101,7 @@
             </section>
         </div>
 
+        <!-- ส่วนจัดการผู้ใช้งานในระบบ (ดูรายชื่อ, แก้ไขสิทธิ์, ลบผู้ใช้) -->
         <section class="control-card admin-users-section">
             <div class="admin-users-heading">
                 <div>
@@ -122,6 +128,7 @@
         </section>
     </div>
 
+    <!-- Popup หน้าต่างแก้ไขข้อมูลผู้ใช้และสิทธิ์ -->
     <div id="user-edit-modal" class="modal-overlay" hidden role="dialog" aria-labelledby="user-edit-title">
         <div class="modal-card">
             <button type="button" class="modal-close" onclick="closeUserEditModal()" aria-label="ปิด">×</button>
@@ -147,6 +154,7 @@
         </div>
     </div>
 
+    <!-- Popup หน้าต่างเปลี่ยนรหัสผ่านแอดมิน -->
     <div id="password-modal" class="modal-overlay" hidden role="dialog" aria-labelledby="password-modal-title">
         <div class="modal-card">
             <button type="button" class="modal-close" onclick="closePasswordModal()" aria-label="ปิด">×</button>

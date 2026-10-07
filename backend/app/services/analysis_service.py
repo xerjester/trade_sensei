@@ -5,6 +5,7 @@ from app.models import HistoricalPrice, PricePrediction
 from app.services import predictor_service, sentiment_service, stock_service
 
 
+# วิเคราะห์หุ้นเชิงลึก รวบรวมอารมณ์ข่าว (TextBlob) และแนวโน้มราคาจากโมเดล Prophet
 def get_deep_analysis(symbol: str) -> dict | None:
     stock = stock_service.get_stock_by_symbol(symbol)
     if not stock:
