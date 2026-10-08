@@ -73,6 +73,5 @@ def get_deep_analysis(symbol: str) -> dict | None:
             'prediction_dates': [p.predict_date.strftime('%Y-%m-%d') for p in predictions],
             'predicted_closes': [float(p.predicted_close) for p in predictions],
         },
-        # DFD 4.2 receives the safe model-quality summary, not raw model weights.
         'forecast_quality': predictor_service.get_forecast_quality(stock.stock_id),
     }
