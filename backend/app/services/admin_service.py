@@ -3,24 +3,65 @@ from app.models import Stock, SystemLog, User
 from app.services.stock_service import get_stock_by_symbol
 
 
-# เพิ่มหุ้นตัวใหม่เข้าสู่ระบบ พร้อมดึงราคาและข่าวอัตโนมัติทันที
-def add_stock(symbol: str, company_name: str, category: str) -> str | None:
+# เพิ่มหุ้นตัวใหม่เข้าสู่ระบบ พร้อมตรวจจับชื่อ/หมวดหมู่อัตโนมัติ ดึงราคา ข่าว และเทรน AI ทันที
+def add_stock(symbol: str, company_name: str = '', category: str = '') -> str | None:
     symbol = symbol.strip().upper()
     if get_stock_by_symbol(symbol):
-        return 'มีหุ้นตัวนี้ในระบบแล้ว'
-    stock = Stock(symbol=symbol, company_name=company_name, category=category)
+        return f'มีหุ้น {symbol} ในระบบแล้ว'
+
+    import yfinance as yf
+    ticker = yf.Ticker(symbol)
+    try:
+        hist = ticker.history(period='1mo')
+        if hist.empty:
+            return f'ไม่พบข้อมูลการซื้อขายสำหรับหุ้น {symbol} บน Yahoo Finance กรุณาตรวจสอบตัวย่อ'
+    except Exception as e:
+        return f'ไม่สามารถเชื่อมต่อข้อมูล Yahoo Finance สำหรับ {symbol} ได้: {str(e)}'
+
+    # ตรวจจับชื่อบริษัทและหมวดหมู่อัตโนมัติจาก Yahoo Finance หากไม่ได้ระบุมา
+    info = {}
+    try:
+        info = ticker.info or {}
+    except Exception:
+        info = {}
+
+    resolved_name = (company_name or '').strip()
+    if not resolved_name:
+        resolved_name = info.get('shortName') or info.get('longName') or symbol
+
+    resolved_cat = (category or '').strip()
+    if not resolved_cat or resolved_cat.lower() == 'unknown':
+        resolved_cat = info.get('sector') or info.get('category') or info.get('industry')
+        if not resolved_cat:
+            if symbol.endswith('-USD'):
+                resolved_cat = 'Crypto'
+            elif symbol in ('GLD', 'GOLD'):
+                resolved_cat = 'Commodities'
+            else:
+                resolved_cat = 'Equity'
+
+    stock = Stock(symbol=symbol, company_name=resolved_name, category=resolved_cat)
     db.session.add(stock)
     db.session.commit()
 
-    # หุ้นตัวที่มาทีหลัง ดึงข้อมูลราคาและข่าวสารอัตโนมัติทันที
+    # ดึงราคา 2 ปี ข่าวสาร และคำนวณโมเดลพยากรณ์ล่วงหน้า 7 วัน
     try:
         from app.services.scraper_service import scrape_news_for_stock
         from app.services.stock_service import fetch_stock_from_yfinance
+        from app.services.predictor_service import run_prophet_forecast
         fetch_stock_from_yfinance(symbol)
         scrape_news_for_stock(stock)
+        try:
+            run_prophet_forecast(stock.stock_id, force_refresh=True)
+        except Exception:
+            pass
     except Exception:
         pass
 
+    log_system_action(
+        'ADMIN_ADD_STOCK',
+        f'เพิ่มหุ้น {symbol} ({resolved_name}) หมวดหมู่ {resolved_cat} พร้อมดึงข้อมูลและเตรียมโมเดล AI',
+    )
     return None
 
 

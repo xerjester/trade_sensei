@@ -43,62 +43,241 @@ function escapeAdminHtml(value) {
         .replaceAll("'", '&#039;');
 }
 
-// เพิ่มบรรทัดข้อความลงกล่อง log ด้านล่าง พร้อมเลื่อนลงล่างสุด
+// ฟังก์ชันจัดรูปแบบข้อความ Log แยกสีตามแท็ก เช่น [Action] สีฟ้า, [Response] สีเขียว, [System] สีม่วง, [Error] สีแดง
+function formatLogMessage(rawMessage) {
+    const text = String(rawMessage ?? '');
+    let escaped = escapeAdminHtml(text);
+
+    // 1. ตรวจจับแท็ก [Tag] ในวงเล็บก้ามปูทั้งหมดในรอบเดียว
+    escaped = escaped.replace(/\[([^\]]+)\]/g, (match, tag) => {
+        const trimmed = tag.trim();
+        const lower = trimmed.toLowerCase();
+
+        // Timestamp เช่น [2026-10-08 17:52:24] หรือ [17:52:24] (สีเทา)
+        if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}$|^\d{2}:\d{2}:\d{2}$/.test(trimmed)) {
+            return `<span class="log-tag log-time">[${trimmed}]</span>`;
+        }
+
+        // แท็กกลุ่ม Action / การกระทำ / คำสั่งระบบ เช่น [Action], [ADMIN_ADD_STOCK], [FETCH_STOCK_DATA] (สีฟ้าสดใส)
+        if (
+            lower === 'action' ||
+            lower.startsWith('admin') ||
+            lower.startsWith('fetch') ||
+            lower.startsWith('train') ||
+            lower.startsWith('scraper') ||
+            lower.includes('stock') ||
+            lower.includes('sentiment')
+        ) {
+            return `<span class="log-tag log-action">[${trimmed}]</span>`;
+        }
+
+        // แท็กกลุ่มผลลัพธ์สำเร็จ Response / Success เช่น [Response], [AUTH_LOGIN_SUCCESS] (สีเขียวมิ้นต์)
+        if (lower === 'response' || lower.includes('success') || lower.includes('ok')) {
+            return `<span class="log-tag log-response">[${trimmed}]</span>`;
+        }
+
+        // แท็กกลุ่ม Error / ข้อผิดพลาด เช่น [Error] (สีแดง)
+        if (lower === 'error' || lower.includes('fail') || lower.includes('delete')) {
+            return `<span class="log-tag log-error">[${trimmed}]</span>`;
+        }
+
+        // แท็กกลุ่ม Warning / แจ้งเตือน เช่น [Warning] (สีเหลืองส้ม)
+        if (lower === 'warning' || lower.includes('warn')) {
+            return `<span class="log-tag log-warning">[${trimmed}]</span>`;
+        }
+
+        // แท็กกลุ่ม System / ระบบ เช่น [System], [Info] (สีม่วงลาเวนเดอร์)
+        if (lower === 'system' || lower === 'info') {
+            return `<span class="log-tag log-system">[${trimmed}]</span>`;
+        }
+
+        return `<span class="log-tag log-default">[${trimmed}]</span>`;
+    });
+
+    // 2. ปรับสีส่วนชื่อผู้สั่งการ เช่น "by admin@tradesensei.com:"
+    escaped = escaped.replace(
+        /\bby\s+([^:]+):/g,
+        '<span class="log-actor">by $1:</span>'
+    );
+
+    return escaped;
+}
+
+// เพิ่มบรรทัดข้อความลงกล่อง log ด้านล่าง พร้อมเลื่อนลงล่างสุด และใส่สีสันตามประเภท
 function appendLogLine(message) {
     const logWin = document.getElementById('log-window');
+    if (!logWin) return;
     const line = document.createElement('div');
-    line.textContent = String(message ?? '');
+    line.className = 'log-line';
+    line.innerHTML = formatLogMessage(message);
     logWin.appendChild(line);
     logWin.scrollTop = logWin.scrollHeight;
 }
 
-// ดึงรายชื่อหุ้นทั้งหมดมาใส่ในตารางจัดการหุ้น
-async function loadStocksAdmin() {
-    const response = await fetch(`${API_BASE}/api/stocks`);
-    const result = await response.json();
+// ตัวแปรและสถานะสำหรับการค้นหาและแบ่งหน้าตารางหุ้น (หน้าละ 10 รายการ)
+let allStocks = [];
+let filteredStocks = [];
+let currentStockPage = 1;
+const STOCK_PAGE_SIZE = 10;
+let stockSearchQuery = '';
+
+// ฟังก์ชันค้นหาหุ้นแบบเรียลไทม์
+function handleStockSearch(query) {
+    stockSearchQuery = (query || '').trim().toLowerCase();
+    const clearBtn = document.getElementById('clear-stock-search');
+    if (clearBtn) clearBtn.style.display = stockSearchQuery ? 'inline-flex' : 'none';
+    currentStockPage = 1;
+    applyStockFilterAndRender();
+}
+
+// ล้างคำค้นหาหุ้น
+function clearStockSearch() {
+    const input = document.getElementById('stock-search-input');
+    if (input) input.value = '';
+    handleStockSearch('');
+}
+
+// เปลี่ยนหน้าตารางหุ้น (ก่อนหน้า / ถัดไป)
+function changeStockPage(delta) {
+    const totalPages = Math.max(1, Math.ceil(filteredStocks.length / STOCK_PAGE_SIZE));
+    const newPage = currentStockPage + delta;
+    if (newPage >= 1 && newPage <= totalPages) {
+        currentStockPage = newPage;
+        renderStockTablePage();
+    }
+}
+
+// ไปยังหน้าที่ระบุของตารางหุ้น
+function goToStockPage(pageNum) {
+    const totalPages = Math.max(1, Math.ceil(filteredStocks.length / STOCK_PAGE_SIZE));
+    if (pageNum >= 1 && pageNum <= totalPages) {
+        currentStockPage = pageNum;
+        renderStockTablePage();
+    }
+}
+
+// กรองหุ้นตามคำค้นหาแล้วเรนเดอร์ตาราง
+function applyStockFilterAndRender() {
+    if (!stockSearchQuery) {
+        filteredStocks = [...allStocks];
+    } else {
+        filteredStocks = allStocks.filter((s) => {
+            const sym = (s.symbol || '').toLowerCase();
+            const name = (s.company_name || '').toLowerCase();
+            const cat = (s.category || '').toLowerCase();
+            return sym.includes(stockSearchQuery) || name.includes(stockSearchQuery) || cat.includes(stockSearchQuery);
+        });
+    }
+    renderStockTablePage();
+}
+
+// เรนเดอร์ตารางหุ้นเฉพาะ 10 รายการในหน้าที่เลือก
+function renderStockTablePage() {
+    const totalItems = filteredStocks.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / STOCK_PAGE_SIZE));
+    if (currentStockPage > totalPages) currentStockPage = totalPages;
+    if (currentStockPage < 1) currentStockPage = 1;
+
+    const startIndex = (currentStockPage - 1) * STOCK_PAGE_SIZE;
+    const endIndex = Math.min(startIndex + STOCK_PAGE_SIZE, totalItems);
+    const pageItems = filteredStocks.slice(startIndex, endIndex);
+
     const tbody = document.getElementById('stock-table-body');
+    if (!tbody) return;
     tbody.innerHTML = '';
 
-    result.data.forEach(stock => {
+    if (pageItems.length === 0) {
         const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><b>${escapeAdminHtml(stock.symbol)}</b></td>
-            <td>${escapeAdminHtml(stock.company_name || '-')}</td>
-            <td>${escapeAdminHtml(stock.category || 'N/A')}</td>
-            <td><button type="button" class="btn-delete" data-action="delete-stock">ลบ</button></td>
-        `;
-        tr.querySelector('[data-action="delete-stock"]')?.addEventListener(
-            'click', () => deleteStock(stock.symbol)
-        );
+        tr.innerHTML = `<td colspan="4" class="table-empty-cell">ไม่พบรายการหุ้นที่ตรงกับคำค้นหา</td>`;
         tbody.appendChild(tr);
-    });
+    } else {
+        pageItems.forEach((stock) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><b>${escapeAdminHtml(stock.symbol)}</b></td>
+                <td>${escapeAdminHtml(stock.company_name || '-')}</td>
+                <td>${escapeAdminHtml(stock.category || 'N/A')}</td>
+                <td><button type="button" class="btn-delete" data-action="delete-stock">ลบ</button></td>
+            `;
+            tr.querySelector('[data-action="delete-stock"]')?.addEventListener(
+                'click', () => deleteStock(stock.symbol)
+            );
+            tbody.appendChild(tr);
+        });
+    }
 
-    // อัปเดตตัวเลขจำนวนหุ้นบนการ์ดสรุป
-    const stockCount = document.getElementById('admin-stock-count');
-    if (stockCount) stockCount.textContent = result.data.length;
+    // อัปเดตข้อความจำนวนรายการและปุ่มเปลี่ยนหน้า
+    const infoEl = document.getElementById('stock-pagination-info');
+    if (infoEl) {
+        infoEl.textContent = totalItems === 0
+            ? 'ไม่พบข้อมูล'
+            : `แสดง ${startIndex + 1}-${endIndex} จาก ${totalItems} รายการ`;
+    }
+
+    const prevBtn = document.getElementById('stock-prev-btn');
+    const nextBtn = document.getElementById('stock-next-btn');
+    if (prevBtn) prevBtn.disabled = currentStockPage <= 1;
+    if (nextBtn) nextBtn.disabled = currentStockPage >= totalPages;
+
+    // เรนเดอร์ปุ่มหมายเลขหน้า
+    const numContainer = document.getElementById('stock-page-numbers');
+    if (numContainer) {
+        numContainer.innerHTML = '';
+        for (let i = 1; i <= totalPages; i++) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `btn-page-number ${i === currentStockPage ? 'active' : ''}`;
+            btn.textContent = i;
+            btn.onclick = () => goToStockPage(i);
+            numContainer.appendChild(btn);
+        }
+    }
+}
+
+// ดึงรายชื่อหุ้นทั้งหมดมาใส่ในตารางจัดการหุ้น
+async function loadStocksAdmin() {
+    try {
+        const response = await fetch(`${API_BASE}/api/stocks`);
+        const result = await response.json();
+        allStocks = result.data || [];
+
+        // อัปเดตตัวเลขจำนวนหุ้นบนการ์ดสรุป
+        const stockCount = document.getElementById('admin-stock-count');
+        if (stockCount) stockCount.textContent = allStocks.length;
+
+        applyStockFilterAndRender();
+    } catch {
+        showToast('โหลดรายชื่อหุ้นไม่ได้');
+    }
 }
 
 // เพิ่มหุ้นใหม่เข้าสู่ระบบ
 async function addStock() {
     const symbol = document.getElementById('new-symbol').value.trim();
     const name = document.getElementById('new-name').value.trim();
+    const catInput = document.getElementById('new-category');
+    const category = catInput ? catInput.value.trim() : '';
 
     if (!symbol) {
         showToast('กรุณาระบุชื่อย่อหุ้น');
         return;
     }
 
+    appendLogLine(`[Action] กำลังเพิ่มหุ้น ${symbol.toUpperCase()} และดึงข้อมูลราคา/ข่าว...`);
     const response = await fetch(`${API_BASE}/api/admin/stocks`, {
         method: 'POST',
         headers: authHeaders(),
-        body: JSON.stringify({ symbol: symbol, company_name: name }),
+        body: JSON.stringify({ symbol: symbol, company_name: name, category: category }),
     });
     const result = await response.json();
     showToast(result.message);
+    appendLogLine(`[Response] ${result.message}`);
     if (result.status === 'success') {
         document.getElementById('new-symbol').value = '';
         document.getElementById('new-name').value = '';
+        if (catInput) catInput.value = '';
         loadStocksAdmin();
+        setTimeout(loadLogs, 1500);
     }
 }
 
@@ -138,24 +317,97 @@ async function trainModels() {
     await runTask('train-models');
 }
 
-// โหลดรายชื่อผู้ใช้ทั้งหมดมาแสดงในตารางจัดการสมาชิก
-async function loadUsers() {
+// ตัวแปรและสถานะสำหรับการค้นหาและแบ่งหน้าตารางผู้ใช้ (หน้าละ 10 รายการ)
+let allUsers = [];
+let filteredUsers = [];
+let currentUserPage = 1;
+const USER_PAGE_SIZE = 10;
+let userSearchQuery = '';
+
+// ฟังก์ชันค้นหาผู้ใช้แบบเรียลไทม์
+function handleUserSearch(query) {
+    userSearchQuery = (query || '').trim().toLowerCase();
+    const clearBtn = document.getElementById('clear-user-search');
+    if (clearBtn) clearBtn.style.display = userSearchQuery ? 'inline-flex' : 'none';
+    currentUserPage = 1;
+    applyUserFilterAndRender();
+}
+
+// ล้างคำค้นหาผู้ใช้
+function clearUserSearch() {
+    const input = document.getElementById('user-search-input');
+    if (input) input.value = '';
+    handleUserSearch('');
+}
+
+// เปลี่ยนหน้าตารางผู้ใช้ (ก่อนหน้า / ถัดไป)
+function changeUserPage(delta) {
+    const totalPages = Math.max(1, Math.ceil(filteredUsers.length / USER_PAGE_SIZE));
+    const newPage = currentUserPage + delta;
+    if (newPage >= 1 && newPage <= totalPages) {
+        currentUserPage = newPage;
+        renderUserTablePage();
+    }
+}
+
+// ไปยังหน้าที่ระบุของตารางผู้ใช้
+function goToUserPage(pageNum) {
+    const totalPages = Math.max(1, Math.ceil(filteredUsers.length / USER_PAGE_SIZE));
+    if (pageNum >= 1 && pageNum <= totalPages) {
+        currentUserPage = pageNum;
+        renderUserTablePage();
+    }
+}
+
+// กรองผู้ใช้ตามคำค้นหาแล้วเรนเดอร์ตาราง
+function applyUserFilterAndRender() {
+    if (!userSearchQuery) {
+        filteredUsers = [...allUsers];
+    } else {
+        filteredUsers = allUsers.filter((u) => {
+            const email = (u.email || '').toLowerCase();
+            const firstName = (u.first_name || '').toLowerCase();
+            const lastName = (u.last_name || '').toLowerCase();
+            const fullName = `${firstName} ${lastName}`.trim();
+            const role = (u.role || '').toLowerCase();
+            const roleLabel = role === 'admin' ? 'admin ผู้ดูแล' : 'member สมาชิก';
+            return (
+                email.includes(userSearchQuery) ||
+                firstName.includes(userSearchQuery) ||
+                lastName.includes(userSearchQuery) ||
+                fullName.includes(userSearchQuery) ||
+                role.includes(userSearchQuery) ||
+                roleLabel.includes(userSearchQuery)
+            );
+        });
+    }
+    renderUserTablePage();
+}
+
+// เรนเดอร์ตารางผู้ใช้เฉพาะ 10 รายการในหน้าที่เลือก
+function renderUserTablePage() {
+    const totalItems = filteredUsers.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / USER_PAGE_SIZE));
+    if (currentUserPage > totalPages) currentUserPage = totalPages;
+    if (currentUserPage < 1) currentUserPage = 1;
+
+    const startIndex = (currentUserPage - 1) * USER_PAGE_SIZE;
+    const endIndex = Math.min(startIndex + USER_PAGE_SIZE, totalItems);
+    const pageItems = filteredUsers.slice(startIndex, endIndex);
+
     const tbody = document.getElementById('users-table-body');
     if (!tbody) return;
+    tbody.innerHTML = '';
 
-    try {
-        const response = await fetch(`${API_BASE}/api/admin/users`, { headers: authHeaders() });
-        const result = await response.json();
-        if (result.status !== 'success') {
-            showToast(result.message || 'โหลดรายชื่อผู้ใช้ไม่ได้');
-            return;
-        }
-
+    if (pageItems.length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan="5" class="table-empty-cell">ไม่พบรายการผู้ใช้ที่ตรงกับคำค้นหา</td>`;
+        tbody.appendChild(tr);
+    } else {
         const stored = getStoredUser();
         const myId = stored ? stored.user_id : null;
-        tbody.innerHTML = '';
 
-        result.data.forEach((user) => {
+        pageItems.forEach((user) => {
             const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || '-';
             const roleLabel = user.role === 'admin' ? 'Admin' : 'Member';
             const tr = document.createElement('tr');
@@ -177,10 +429,54 @@ async function loadUsers() {
             );
             tbody.appendChild(tr);
         });
+    }
+
+    // อัปเดตข้อความจำนวนรายการและปุ่มเปลี่ยนหน้า
+    const infoEl = document.getElementById('user-pagination-info');
+    if (infoEl) {
+        infoEl.textContent = totalItems === 0
+            ? 'ไม่พบข้อมูล'
+            : `แสดง ${startIndex + 1}-${endIndex} จาก ${totalItems} บัญชี`;
+    }
+
+    const prevBtn = document.getElementById('user-prev-btn');
+    const nextBtn = document.getElementById('user-next-btn');
+    if (prevBtn) prevBtn.disabled = currentUserPage <= 1;
+    if (nextBtn) nextBtn.disabled = currentUserPage >= totalPages;
+
+    // เรนเดอร์ปุ่มหมายเลขหน้า
+    const numContainer = document.getElementById('user-page-numbers');
+    if (numContainer) {
+        numContainer.innerHTML = '';
+        for (let i = 1; i <= totalPages; i++) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `btn-page-number ${i === currentUserPage ? 'active' : ''}`;
+            btn.textContent = i;
+            btn.onclick = () => goToUserPage(i);
+            numContainer.appendChild(btn);
+        }
+    }
+}
+
+// โหลดรายชื่อผู้ใช้ทั้งหมดมาแสดงในตารางจัดการสมาชิก
+async function loadUsers() {
+    try {
+        const response = await fetch(`${API_BASE}/api/admin/users`, { headers: authHeaders() });
+        const result = await response.json();
+        if (result.status !== 'success') {
+            showToast(result.message || 'โหลดรายชื่อผู้ใช้ไม่ได้');
+            return;
+        }
+
+        allUsers = result.data || [];
+        usersCache = allUsers;
 
         // อัปเดตตัวเลขจำนวนผู้ใช้บนการ์ดสรุป
         const userCount = document.getElementById('admin-user-count');
-        if (userCount) userCount.textContent = result.data.length;
+        if (userCount) userCount.textContent = allUsers.length;
+
+        applyUserFilterAndRender();
     } catch {
         showToast('โหลดรายชื่อผู้ใช้ไม่ได้');
     }
@@ -317,7 +613,7 @@ async function loadLogs() {
         appendLogLine('[System] Logs ล่าสุด');
         result.data.forEach((log) => {
             const actor = log.user_email ? `${log.user_email}${log.user_role ? ` (${log.user_role})` : ''}` : 'system';
-            appendLogLine(`[${log.created_at}] ${log.action_type} by ${actor}: ${log.description}`);
+            appendLogLine(`[${log.created_at}] [${log.action_type}] by ${actor}: ${log.description}`);
         });
         logWin.scrollTop = logWin.scrollHeight;
     } catch (e) {
@@ -332,10 +628,24 @@ function logoutAdmin() {
     window.location.href = 'login.html';
 }
 
+// ล้างค่าที่เบราว์เซอร์แอบ autofill อัตโนมัติในช่องฟอร์มหุ้น
+function clearStockFormAutofill() {
+    ['new-symbol', 'new-name', 'new-category'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el && (el.value === 'admin' || el.value.includes('@') || el.value.toLowerCase() === 'admin')) {
+            el.value = '';
+        }
+    });
+}
+
 // ตอนเปิดหน้าเว็บ เช็กสิทธิ์แอดมินก่อน ถ้าผ่านค่อยโหลดข้อมูลหุ้น ผู้ใช้ และ log มาแสดง
 window.onload = () => {
     if (!requireAdminAuth()) return;   // ไม่ใช่แอดมิน หยุดทำงานทันที
     document.body.hidden = false;      // ผ่านแล้ว ค่อยเปิดให้เห็นหน้าเว็บ
+    clearStockFormAutofill();
+    setTimeout(clearStockFormAutofill, 50);
+    setTimeout(clearStockFormAutofill, 200);
+    setTimeout(clearStockFormAutofill, 500);
     loadStocksAdmin();
     loadUsers();
     loadLogs();

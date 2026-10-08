@@ -1,4 +1,9 @@
-const API_BASE = 'https://tradesensei-backend.onrender.com';
+// ตรวจสอบสภาพแวดล้อมอัตโนมัติ: ถ้าเปิดในเครื่อง (Local/Live Server) ใช้ http://localhost:5000 ถ้าเปิดออนไลน์ใช้ Render
+const API_BASE = (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.protocol === 'file:'
+) ? 'http://localhost:5000' : 'https://tradesensei-backend.onrender.com';
 
 const AUTH_TOKEN_KEY = 'tradesensei_token';
 const AUTH_USER_KEY = 'tradesensei_user';

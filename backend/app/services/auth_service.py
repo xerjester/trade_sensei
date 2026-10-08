@@ -179,16 +179,32 @@ def request_password_reset(email: str) -> tuple[bool, str]:
         ))
         db.session.commit()
     except Exception as e:
-        if Config.FLASK_DEBUG:
+        err_str = str(e)
+        # ตรวจสอบว่าเป็นข้อจำกัดของ Resend Free Tier Sandbox หรือไม่ (อนุญาตส่งเฉพาะเจ้าของบัญชี alatus2003@gmail.com)
+        is_sandbox_limit = (
+            'can only send testing emails' in err_str.lower()
+            or 'testing emails' in err_str.lower()
+            or 'verify your domain' in err_str.lower()
+            or 'validation_error' in err_str.lower()
+            or 'not verified' in err_str.lower()
+        )
+        if is_sandbox_limit or Config.FLASK_DEBUG:
+            # Resend Sandbox ส่งเข้า inbox จริงได้เฉพาะ alatus2003@gmail.com
+            # เพื่อให้กรรมการสอบและนักศึกษาทดสอบระบบด้วยเมลอื่นได้โดยไม่ error 500:
+            # บันทึกรหัส OTP ลงใน SystemLog และแสดงรหัสเพื่อใช้ทดสอบได้ทันที
             db.session.add(SystemLog(
                 user_id=user.user_id,
                 action_type='AUTH_PASSWORD_RESET_OTP_SENT',
-                description=f'[DEBUG] OTP generated for {user.email}: {code} (Send error: {str(e)[:80]})',
+                description=(
+                    f'[Resend Sandbox Alert] รหัส OTP สำหรับ {user.email} คือ: {code} '
+                    f'(ไม่สามารถส่งเข้า inbox ได้เนื่องจาก Resend Sandbox จำกัดส่งเฉพาะ alatus2003@gmail.com)'
+                ),
             ))
             db.session.commit()
+            return True, f'รหัส OTP ถูกสร้างเรียบร้อยแล้ว (หมายเหตุ: บัญชี Resend Sandbox ส่งเข้า inbox ได้เฉพาะ alatus2003@gmail.com สำหรับอีเมลอื่นสามารถนำรหัส OTP ไปทดสอบได้ทันที: {code})'
         else:
             db.session.rollback()
-            raise
+            return False, f'ไม่สามารถส่งอีเมลรหัส OTP ได้ในขณะนี้ ({err_str[:100]})'
     return True, 'ส่งรหัส OTP 6 หลักไปยังอีเมลของคุณเรียบร้อยแล้ว'
 
 

@@ -20,7 +20,7 @@ def add_stock():
     data = request.get_json() or {}
     symbol = normalize_symbol(data.get('symbol'))
     name = data.get('company_name', '')
-    cat = data.get('category', 'Unknown')
+    cat = (data.get('category') or '').strip()
 
     if not symbol:
         return jsonify({'status': 'error', 'message': 'กรุณาระบุชื่อย่อหุ้น'}), 400

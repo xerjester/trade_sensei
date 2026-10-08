@@ -1,21 +1,26 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - TradeSensei</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body class="admin-page" hidden>
     <!-- แถบนำทางด้านบน สำหรับผู้ดูแลระบบ -->
     <nav class="top-nav">
         <div class="nav-brand">
-            <button type="button" class="nav-toggle" id="nav-toggle" aria-label="เปิดเมนู" aria-expanded="false">☰</button>
-            <div class="logo"><span class="brand-mark">TS</span><span>TradeSensei</span><span class="logo-sub">Admin</span></div>
+            <button type="button" class="nav-toggle" id="nav-toggle" aria-label="เปิดเมนู"
+                aria-expanded="false">☰</button>
+            <div class="logo"><span class="brand-mark">TS</span><span>TradeSensei</span><span
+                    class="logo-sub">Admin</span></div>
         </div>
         <div class="nav-actions" id="nav-actions">
             <a href="index.html" class="btn-outline nav-link-btn">หน้าหลัก</a>
-            <button type="button" class="btn-outline nav-link-btn" onclick="openPasswordModal()">เปลี่ยนรหัสผ่าน</button>
+            <button type="button" class="btn-outline nav-link-btn"
+                onclick="openPasswordModal()">เปลี่ยนรหัสผ่าน</button>
             <button type="button" class="btn-ghost" onclick="logoutAdmin()">ออกจากระบบ</button>
         </div>
     </nav>
@@ -27,7 +32,8 @@
                 <p class="eyebrow">SYSTEM OPERATIONS</p>
                 <h1>ศูนย์ควบคุมระบบ</h1>
                 <p>จัดการข้อมูลตลาด โมเดล และบัญชีผู้ใช้จากพื้นที่เดียว</p>
-                <div class="admin-live-status"><span class="status-dot" aria-hidden="true"></span>ระบบพร้อมรับคำสั่ง</div>
+                <div class="admin-live-status"><span class="status-dot" aria-hidden="true"></span>ระบบพร้อมรับคำสั่ง
+                </div>
             </div>
             <aside class="admin-overview" aria-label="ภาพรวมระบบ">
                 <div class="overview-stat">
@@ -55,7 +61,9 @@
                 </div>
                 <button type="button" class="btn-outline" onclick="loadLogs()">รีเฟรช Log</button>
             </div>
-            <div class="log-window" id="log-window">[System] พร้อมทำงาน...</div>
+            <div class="log-window" id="log-window">
+                <div class="log-line"><span class="log-tag log-system">[System]</span> พร้อมทำงาน...</div>
+            </div>
         </section>
 
         <div class="admin-grid">
@@ -68,18 +76,50 @@
                         <p class="card-desc">เพิ่มหรือลบรายการหลักทรัพย์ที่ระบบติดตาม</p>
                     </div>
                 </div>
-                <div class="admin-form-row">
-                    <input type="text" id="new-symbol" placeholder="ชื่อย่อ เช่น GULF.BK" class="filter-select" aria-label="ชื่อย่อหุ้น">
-                    <input type="text" id="new-name" placeholder="ชื่อบริษัท" class="filter-select" aria-label="ชื่อบริษัท">
-                    <button type="button" class="btn-primary" onclick="addStock()">เพิ่มหุ้น</button>
+                <form class="admin-form-row" autocomplete="off" onsubmit="event.preventDefault(); addStock();">
+                    <input type="text" id="new-symbol" name="market_stock_sym" placeholder="ชื่อย่อ เช่น BABA, GULF.BK"
+                        class="filter-select" aria-label="ชื่อย่อหุ้น" autocomplete="off" spellcheck="false" value=""
+                        readonly onfocus="this.removeAttribute('readonly');">
+                    <input type="text" id="new-name" name="market_stock_company"
+                        placeholder="ชื่อบริษัท (เว้นว่าง = ดึงอัตโนมัติ)" class="filter-select" aria-label="ชื่อบริษัท"
+                        autocomplete="off" spellcheck="false" value="" readonly
+                        onfocus="this.removeAttribute('readonly');">
+                    <input type="text" id="new-category" name="market_stock_category"
+                        placeholder="หมวดหมู่ (เว้นว่าง = ดึงอัตโนมัติ)" class="filter-select" aria-label="หมวดหมู่"
+                        autocomplete="off" spellcheck="false" value="" readonly
+                        onfocus="this.removeAttribute('readonly');">
+                    <button type="submit" class="btn-primary">เพิ่มหุ้น</button>
+                </form>
+                <div class="table-toolbar">
+                    <div class="search-input-wrap">
+                        <span class="search-icon" aria-hidden="true"></span>
+                        <input type="text" id="stock-search-input" class="admin-search-input"
+                            placeholder="ค้นหาหุ้น (ชื่อย่อ, บริษัท, หมวดหมู่)..."
+                            oninput="handleStockSearch(this.value)" autocomplete="off">
+                        <button type="button" class="btn-clear-search" id="clear-stock-search"
+                            onclick="clearStockSearch()" title="ล้างการค้นหา" style="display:none;">×</button>
+                    </div>
+                    <span id="stock-pagination-info" class="pagination-info">กำลังโหลด...</span>
                 </div>
                 <div class="table-wrap">
                     <table id="stock-table">
                         <thead>
-                            <tr><th>Symbol</th><th>ชื่อบริษัท</th><th>หมวดหมู่</th><th></th></tr>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>ชื่อบริษัท</th>
+                                <th>หมวดหมู่</th>
+                                <th></th>
+                            </tr>
                         </thead>
                         <tbody id="stock-table-body"></tbody>
                     </table>
+                </div>
+                <div class="pagination-bar" id="stock-pagination-bar">
+                    <button type="button" class="btn-page" id="stock-prev-btn" onclick="changeStockPage(-1)">‹
+                        ก่อนหน้า</button>
+                    <div class="page-numbers" id="stock-page-numbers"></div>
+                    <button type="button" class="btn-page" id="stock-next-btn" onclick="changeStockPage(1)">ถัดไป
+                        ›</button>
                 </div>
             </section>
 
@@ -90,13 +130,17 @@
                     <h3>สั่งงานระบบ</h3>
                     <p class="card-desc">เริ่มกระบวนการดึงข้อมูลหรือเทรนโมเดล AI โดยผลลัพธ์จะแสดงในบันทึกด้านบน</p>
                     <div class="admin-actions">
-                        <button type="button" class="btn-ai" onclick="runTask('run-scraper')"><span>↻</span> ดึงข้อมูลตลาด</button>
-                        <button type="button" class="btn-outline" onclick="trainModels()"><span>✦</span> เทรน Prophet ทั้งหมด</button>
+                        <button type="button" class="btn-ai" onclick="runTask('run-scraper')"><span>↻</span>
+                            ดึงข้อมูลตลาด</button>
+                        <button type="button" class="btn-outline" onclick="trainModels()"><span>✦</span> เทรน Prophet
+                            ทั้งหมด</button>
                     </div>
                 </div>
                 <aside class="admin-tip-card">
                     <span class="tip-icon" aria-hidden="true">i</span>
-                    <div><strong>ก่อนเริ่มเทรน</strong><p>อัปเดตราคาหุ้นก่อนเสมอ เพื่อให้โมเดลใช้ข้อมูลล่าสุดในการคำนวณ</p></div>
+                    <div><strong>ก่อนเริ่มเทรน</strong>
+                        <p>อัปเดตราคาหุ้นก่อนเสมอ เพื่อให้โมเดลใช้ข้อมูลล่าสุดในการคำนวณ</p>
+                    </div>
                 </aside>
             </section>
         </div>
@@ -110,6 +154,17 @@
                     <p class="card-desc">ดู แก้ไขสิทธิ์ และลบบัญชีสมาชิกหรือผู้ดูแลระบบ</p>
                 </div>
                 <button type="button" class="btn-outline" onclick="loadUsers()">รีเฟรชรายชื่อ</button>
+            </div>
+            <div class="table-toolbar">
+                <div class="search-input-wrap">
+                    <span class="search-icon" aria-hidden="true"></span>
+                    <input type="text" id="user-search-input" class="admin-search-input"
+                        placeholder="ค้นหาผู้ใช้ (อีเมล, ชื่อ-นามสกุล, สิทธิ์)..."
+                        oninput="handleUserSearch(this.value)" autocomplete="off">
+                    <button type="button" class="btn-clear-search" id="clear-user-search" onclick="clearUserSearch()"
+                        title="ล้างการค้นหา" style="display:none;">×</button>
+                </div>
+                <span id="user-pagination-info" class="pagination-info">กำลังโหลด...</span>
             </div>
             <div class="table-wrap">
                 <table id="users-table">
@@ -125,6 +180,12 @@
                     <tbody id="users-table-body"></tbody>
                 </table>
             </div>
+            <div class="pagination-bar" id="user-pagination-bar">
+                <button type="button" class="btn-page" id="user-prev-btn" onclick="changeUserPage(-1)">‹
+                    ก่อนหน้า</button>
+                <div class="page-numbers" id="user-page-numbers"></div>
+                <button type="button" class="btn-page" id="user-next-btn" onclick="changeUserPage(1)">ถัดไป ›</button>
+            </div>
         </section>
     </div>
 
@@ -132,25 +193,27 @@
     <div id="user-edit-modal" class="modal-overlay" hidden role="dialog" aria-labelledby="user-edit-title">
         <div class="modal-card">
             <button type="button" class="modal-close" onclick="closeUserEditModal()" aria-label="ปิด">×</button>
-            <h3 id="user-edit-title">แก้ไขผู้ใช้</h3>
-            <input type="hidden" id="edit-user-id">
-            <label for="edit-email">อีเมล</label>
-            <input type="email" id="edit-email" class="filter-select" required>
-            <label for="edit-first-name">ชื่อ</label>
-            <input type="text" id="edit-first-name" class="filter-select" required>
-            <label for="edit-last-name">นามสกุล</label>
-            <input type="text" id="edit-last-name" class="filter-select">
-            <label for="edit-role">สิทธิ์</label>
-            <select id="edit-role" class="filter-select">
-                <option value="member">สมาชิก (member)</option>
-                <option value="admin">ผู้ดูแล (admin)</option>
-            </select>
-            <label for="edit-new-password">รหัสผ่านใหม่ (เว้นว่าง = ไม่เปลี่ยน)</label>
-            <input type="password" id="edit-new-password" class="filter-select" autocomplete="new-password">
-            <div class="modal-actions">
-                <button type="button" class="btn-primary" onclick="saveUserEdit()">บันทึก</button>
-                <button type="button" class="btn-ghost" onclick="closeUserEditModal()">ยกเลิก</button>
-            </div>
+            <form autocomplete="off" onsubmit="event.preventDefault(); saveUserEdit();">
+                <h3 id="user-edit-title">แก้ไขผู้ใช้</h3>
+                <input type="hidden" id="edit-user-id">
+                <label for="edit-email">อีเมล</label>
+                <input type="email" id="edit-email" class="filter-select" required autocomplete="off">
+                <label for="edit-first-name">ชื่อ</label>
+                <input type="text" id="edit-first-name" class="filter-select" required autocomplete="off">
+                <label for="edit-last-name">นามสกุล</label>
+                <input type="text" id="edit-last-name" class="filter-select" autocomplete="off">
+                <label for="edit-role">สิทธิ์</label>
+                <select id="edit-role" class="filter-select">
+                    <option value="member">สมาชิก (member)</option>
+                    <option value="admin">ผู้ดูแล (admin)</option>
+                </select>
+                <label for="edit-new-password">รหัสผ่านใหม่ (เว้นว่าง = ไม่เปลี่ยน)</label>
+                <input type="password" id="edit-new-password" class="filter-select" autocomplete="new-password">
+                <div class="modal-actions">
+                    <button type="submit" class="btn-primary">บันทึก</button>
+                    <button type="button" class="btn-ghost" onclick="closeUserEditModal()">ยกเลิก</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -175,4 +238,5 @@
     <script src="auth.js"></script>
     <script src="admin.js"></script>
 </body>
+
 </html>

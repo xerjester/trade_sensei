@@ -128,6 +128,27 @@ select:focus-visible {
     filter: brightness(1.08);
 }
 
+.refresh-icon {
+    display: inline-block;
+    margin-right: 4px;
+    transition: transform 0.25s ease;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spin {
+    display: inline-block;
+    animation: spin 0.8s linear infinite;
+}
+
 .btn-ghost {
     background: transparent;
     color: var(--text-muted);
@@ -3225,13 +3246,106 @@ body.is-scrolling .back-to-top {
 .admin-page .log-window {
     width: 100%;
     height: 320px;
-    padding: 18px 20px;
+    padding: 16px 18px;
     border-color: color-mix(in srgb, var(--border) 76%, var(--primary));
     border-radius: 8px;
-    background: #090f19;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
-    font-size: 0.84rem;
+    background: #080c14;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.45);
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+    font-size: 0.83rem;
     line-height: 1.8;
+    color: #cbd5e1;
+    overflow-y: auto;
+}
+
+.log-line {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.025);
+    font-size: 0.83rem;
+    line-height: 1.65;
+    word-break: break-word;
+}
+
+.log-line:hover {
+    background: rgba(255, 255, 255, 0.025);
+}
+
+/* ป้าย Tag สีต่างๆ ของระบบบันทึกการทำงาน */
+.log-tag {
+    display: inline-flex;
+    align-items: center;
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+    padding: 1px 7px;
+    border-radius: 4px;
+    line-height: 1.45;
+    white-space: nowrap;
+    user-select: none;
+}
+
+/* [Action] สีฟ้าสดใส (ตามที่ผู้ใช้กำหนด) */
+.log-tag.log-action {
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    text-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+}
+
+/* [Response] สีเขียวมิ้นต์ */
+.log-tag.log-response {
+    color: #4ade80;
+    background: rgba(74, 222, 128, 0.12);
+    border: 1px solid rgba(74, 222, 128, 0.35);
+    text-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
+}
+
+/* [System] สีม่วงลาเวนเดอร์ */
+.log-tag.log-system {
+    color: #c084fc;
+    background: rgba(192, 132, 252, 0.12);
+    border: 1px solid rgba(192, 132, 252, 0.35);
+}
+
+/* [Error] สีแดงแจ้งเตือน */
+.log-tag.log-error {
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.14);
+    border: 1px solid rgba(248, 113, 113, 0.4);
+    font-weight: 700;
+}
+
+/* [Warning] สีเหลืองส้ม */
+.log-tag.log-warning {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.12);
+    border: 1px solid rgba(251, 191, 36, 0.35);
+}
+
+/* Timestamp สีเทา */
+.log-tag.log-time {
+    color: #94a3b8;
+    background: rgba(148, 163, 184, 0.08);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    font-weight: 500;
+    font-size: 0.74rem;
+}
+
+/* Tag ทั่วไปอื่นๆ */
+.log-tag.log-default {
+    color: #93c5fd;
+    background: rgba(147, 197, 253, 0.1);
+    border: 1px solid rgba(147, 197, 253, 0.25);
+}
+
+/* ผู้กระทำกิจกรรม (Actor) */
+.log-actor {
+    color: #818cf8;
+    font-size: 0.82rem;
 }
 
 .admin-grid {
@@ -3246,7 +3360,7 @@ body.is-scrolling .back-to-top {
 
 .admin-form-row {
     display: grid;
-    grid-template-columns: minmax(140px, 0.78fr) minmax(180px, 1.45fr) auto;
+    grid-template-columns: minmax(130px, 0.85fr) minmax(180px, 1.25fr) minmax(160px, 1.1fr) auto;
     gap: 10px;
     margin: 20px 0;
 }
@@ -3255,19 +3369,79 @@ body.is-scrolling .back-to-top {
     min-width: 112px;
 }
 
+/* ป้องกันเบราว์เซอร์แสดงพื้นหลังสีขาวตอน autofill */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px #162032 inset !important;
+    -webkit-text-fill-color: #f0f3f8 !important;
+    caret-color: #f0f3f8 !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
 .admin-page .table-wrap {
+    min-height: 584px;
     border-color: var(--border);
     border-radius: 8px;
+    background: rgba(11, 18, 30, 0.45);
+    overflow-x: auto;
+}
+
+.admin-page table {
+    width: 100%;
+    border-collapse: collapse;
 }
 
 .admin-page th {
-    padding: 11px 14px;
+    height: 44px;
+    padding: 10px 14px;
+    box-sizing: border-box;
     background: color-mix(in srgb, var(--bg-dark) 88%, var(--primary) 12%);
+    vertical-align: middle;
 }
 
-.admin-page th,
 .admin-page td {
-    padding: 13px 14px;
+    height: 54px;
+    padding: 10px 14px;
+    box-sizing: border-box;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border);
+}
+
+.admin-page tbody tr:hover td {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* ล็อกความกว้างคอลัมน์ของตารางหุ้นให้คงที่ ไม่ขยับตามข้อมูลแต่ละหน้า */
+#stock-table th:nth-child(1),
+#stock-table td:nth-child(1) { width: 18%; }
+#stock-table th:nth-child(2),
+#stock-table td:nth-child(2) { width: 44%; }
+#stock-table th:nth-child(3),
+#stock-table td:nth-child(3) { width: 26%; }
+#stock-table th:nth-child(4),
+#stock-table td:nth-child(4) { width: 12%; text-align: right; }
+
+/* ล็อกความกว้างคอลัมน์ของตารางผู้ใช้ให้คงที่ ไม่ขยับตามข้อมูลแต่ละหน้า */
+#users-table th:nth-child(1),
+#users-table td:nth-child(1) { width: 28%; }
+#users-table th:nth-child(2),
+#users-table td:nth-child(2) { width: 24%; }
+#users-table th:nth-child(3),
+#users-table td:nth-child(3) { width: 14%; }
+#users-table th:nth-child(4),
+#users-table td:nth-child(4) { width: 18%; }
+#users-table th:nth-child(5),
+#users-table td:nth-child(5) { width: 16%; text-align: right; }
+
+.admin-page .table-empty-cell {
+    height: 220px !important;
+    text-align: center !important;
+    color: var(--text-muted) !important;
+    font-size: 0.9rem !important;
+    vertical-align: middle !important;
+    border-bottom: none !important;
 }
 
 .admin-operations {
@@ -3344,6 +3518,167 @@ body.is-scrolling .back-to-top {
 
 .admin-users-heading {
     margin-bottom: 20px;
+}
+
+/* แถบเครื่องมือค้นหาและสถานะการแบ่งหน้าสำหรับ Admin Table */
+.table-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 16px 0 12px;
+    flex-wrap: wrap;
+}
+
+.search-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1;
+    max-width: 360px;
+    min-width: 220px;
+}
+
+.search-input-wrap .search-icon {
+    position: absolute;
+    left: 10px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    pointer-events: none;
+    user-select: none;
+}
+
+.admin-search-input {
+    width: 100%;
+    padding: 8px 32px 8px 32px;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 0.84rem;
+    font-family: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+}
+
+.admin-search-input::placeholder {
+    color: var(--text-dim);
+}
+
+.admin-search-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    background: rgba(15, 23, 42, 0.9);
+}
+
+.btn-clear-search {
+    position: absolute;
+    right: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0);
+    border: none;
+    border-radius: 50%;
+    color: var(--text-muted);
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-clear-search:hover {
+    background: rgba(239, 68, 68, 0);
+    color: #ef4444;
+}
+
+.pagination-info {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    white-space: nowrap;
+}
+
+/* แถบปุ่มแบ่งหน้า (Pagination Bar) */
+.pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    flex-wrap: wrap;
+}
+
+.btn-page {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 14px;
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-page:hover:not(:disabled) {
+    background: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+}
+
+.btn-page:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    background: rgba(15, 23, 42, 0.4);
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+.page-numbers {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.btn-page-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px;
+    height: 30px;
+    padding: 0 8px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-page-number:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn-page-number.active {
+    background: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
+    font-weight: 700;
+    box-shadow: 0 2px 10px rgba(59, 130, 246, 0.4);
 }
 
 @media (max-width: 960px) {
@@ -4348,7 +4683,8 @@ body.is-scrolling .back-to-top {
 
     .admin-form-row input,
     #new-symbol,
-    #new-name {
+    #new-name,
+    #new-category {
         width: 100% !important;
         min-height: 44px !important;
         font-size: 16px !important;

@@ -121,13 +121,29 @@ def fetch_stock_from_yfinance(symbol: str) -> tuple[int, str | None]:
 
     stock = get_stock_by_symbol(symbol)
     if not stock:
+        resolved_sector = ticker.info.get('sector') or ticker.info.get('category') or 'Equity'
         stock = Stock(
             symbol=symbol,
-            company_name=ticker.info.get('shortName', symbol),
-            category=ticker.info.get('sector', 'Unknown'),
+            company_name=ticker.info.get('shortName') or ticker.info.get('longName') or symbol,
+            category=resolved_sector,
         )
         db.session.add(stock)
         db.session.commit()
+    else:
+        # หากหุ้นมีอยู่ในระบบแต่หมวดหมู่เป็น Unknown หรือยังไม่มีชื่อ ให้ซ่อมแซมอัตโนมัติ
+        needs_update = False
+        if not stock.category or stock.category.lower() == 'unknown':
+            new_cat = ticker.info.get('sector') or ticker.info.get('category')
+            if new_cat:
+                stock.category = new_cat
+                needs_update = True
+        if not stock.company_name or stock.company_name == symbol:
+            new_name = ticker.info.get('shortName') or ticker.info.get('longName')
+            if new_name:
+                stock.company_name = new_name
+                needs_update = True
+        if needs_update:
+            db.session.commit()
 
     new_records = 0
     for date, row in hist.iterrows():

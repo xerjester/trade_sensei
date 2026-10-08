@@ -66,12 +66,13 @@ function clearLocalAuth() {
 
 // ล็อกปุ่มฟีเจอร์พรีเมียม (เส้นทำนาย, Backtest, Copilot, Timeframe) ถ้ายังไม่ได้ล็อกอิน
 function updateLockedControls() {
+    const refreshBtn = document.getElementById('refresh-btn');
     const predictionBtn = document.getElementById('prediction-btn');
     const timeMachineBtn = document.getElementById('time-machine-btn');
     const copilotBtn = document.getElementById('copilot-btn');
     const rangeButtons = document.querySelectorAll('.range-btn');
 
-    [predictionBtn, timeMachineBtn, copilotBtn].forEach((btn) => {
+    [refreshBtn, predictionBtn, timeMachineBtn, copilotBtn].forEach((btn) => {
         if (!btn) return;
         if (isMember()) {
             btn.classList.remove('locked-btn');
@@ -721,6 +722,46 @@ function requireMember(featureName) {
         return false;
     }
     return true;
+}
+
+// รีเฟรชข้อมูลหุ้นตัวปัจจุบัน เพื่อดึงค่าล่าสุดจากระบบฐานข้อมูลมาแสดงผลทันที (ขอบเขต 1.3.2.4)
+async function refreshCurrentStock() {
+    if (!requireMember('รีเฟรชข้อมูล')) return;
+
+    const btn = document.getElementById('refresh-btn');
+    const originalHtml = btn ? btn.innerHTML : '<span class="refresh-icon">↻</span> รีเฟรช';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="refresh-icon spin">↻</span> กำลังรีเฟรช...';
+    }
+
+    try {
+        // 1. เคลียร์แคชข้อมูลหุ้นตัวปัจจุบัน เพื่อบังคับให้ดึงค่าล่าสุดจากฐานข้อมูลทันที
+        stockDataCache.delete(currentSymbol);
+
+        // 2. ดึงข้อมูลกราฟแท่งเทียนราคา OHLCV ล่าสุดจากฐานข้อมูล
+        await drawChart(currentSymbol, isPredictionEnabled);
+
+        // 3. ดึงข่าวสารล่าสุดจากฐานข้อมูล
+        await fetchNews(currentSymbol);
+
+        // 4. ดึงผลวิเคราะห์เชิงลึก (Deep Analysis) ล่าสุดจากฐานข้อมูล
+        await fetchDeepAnalysis(currentSymbol);
+
+        if (typeof showToast === 'function') {
+            showToast(`รีเฟรชข้อมูล ${currentSymbol} ล่าสุดจากฐานข้อมูลสำเร็จ`);
+        }
+    } catch (err) {
+        console.error('Refresh error:', err);
+        if (typeof showToast === 'function') {
+            showToast('เกิดข้อผิดพลาดในการรีเฟรชข้อมูล');
+        }
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    }
 }
 
 // กดปุ่มเปิด/ปิดเส้นทำนาย AI บนกราฟแท่งเทียน
