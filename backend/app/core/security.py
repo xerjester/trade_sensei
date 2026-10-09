@@ -34,7 +34,6 @@ def user_to_dict(user: User) -> dict:
         'role': user.role,
         'first_name': user.first_name,
         'last_name': user.last_name,
-        'username': user.username,
     }
 
 
