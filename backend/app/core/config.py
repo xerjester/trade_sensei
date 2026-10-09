@@ -2,6 +2,7 @@ import os
 from datetime import timedelta
 
 
+# การกำหนดค่าระบบหลักของแอปพลิเคชัน (Environment Config)
 class Config:
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         'DATABASE_URL',
@@ -23,6 +24,8 @@ class Config:
     ).strip()
 
     FLASK_DEBUG = os.environ.get('FLASK_DEBUG', '0') == '1'
+
+    # แปลงค่า CORS Origins ที่อนุญาตให้เข้าถึง API ได้จาก Environment หรือค่าเริ่มต้น
     @staticmethod
     def _parse_cors_origins() -> tuple[str, ...]:
         origins = {
@@ -59,9 +62,9 @@ class Config:
     )
     RATELIMIT_STORAGE_URI = os.environ.get('RATELIMIT_STORAGE_URI', 'memory://')
 
+    # ตรวจสอบความปลอดภัยของ Secret Key ในโหมด Production ป้องกันการใช้ Key เริ่มต้นที่ไม่ปลอดภัย
     @classmethod
     def validate(cls) -> None:
-        """Fail closed when production secrets are absent or unsafe."""
         if cls.FLASK_DEBUG:
             if not cls.SECRET_KEY:
                 cls.SECRET_KEY = 'dev-only-secret-change-me'

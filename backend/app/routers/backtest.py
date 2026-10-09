@@ -8,6 +8,7 @@ from app.services import admin_service, backtest_service
 backtest_bp = Blueprint('backtest', __name__, url_prefix='/api/backtest')
 
 
+# API จำลองการลงทุนย้อนหลัง (Backtest) ตามระยะเวลาและเงินต้นที่กำหนด
 @backtest_bp.route('/<symbol>', methods=['POST'])
 @jwt_required()
 @limiter.limit('10 per minute')

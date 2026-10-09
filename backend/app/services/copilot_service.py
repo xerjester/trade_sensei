@@ -1,4 +1,4 @@
-"""Sensei Copilot — strict, database-grounded answers with human-friendly communication (documents.md §4.2)."""
+# ระบบ Sensei Copilot — ผู้ช่วยตอบคำถามการลงทุนอิงตามข้อมูลจริงในระบบ
 from __future__ import annotations
 
 import json
@@ -24,8 +24,8 @@ PROVIDER = 'AI_Copilot'
 logger = logging.getLogger(__name__)
 
 
+# เชื่อมต่อกับ Google Gemini API เพื่อนำมาช่วยเรียบเรียงภาษาไทยให้สละสลวย
 def _get_gemini_rewriter():
-    """Create the optional language-only Gemini client; facts stay local to TradeSensei Big Knowledge."""
     if not Config.GEMINI_API_KEY:
         return None
     try:
@@ -36,15 +36,15 @@ def _get_gemini_rewriter():
         return None
 
 
+# ดึงประวัติการสนทนาของสมาชิกที่ระบุจากฐานข้อมูล
 def get_chat_history(user_id: int, limit: int = 30) -> list[dict]:
-    """DFD 5.1: retrieve only the requesting member's D6 conversation records."""
     rows = (
         ChatHistory.query.filter_by(user_id=user_id)
         .order_by(ChatHistory.times.desc(), ChatHistory.chat_id.desc())
         .limit(max(1, min(limit, 50)))
         .all()
     )
-    # The query is newest-first for efficiency; reverse it for natural reading.
+    # เรียงลำดับจากเก่าไปใหม่ เพื่อให้ข้อความแสดงผลตามลำดับเวลาสนทนาจริง
     return [
         {
             'message': row.message,
@@ -56,15 +56,15 @@ def get_chat_history(user_id: int, limit: int = 30) -> list[dict]:
     ]
 
 
+# ล้างประวัติการสนทนาทั้งหมดของสมาชิกที่ระบุ
 def clear_chat_history(user_id: int) -> int:
-    """DFD 5.5: delete only the requesting member's stored D6 records."""
     deleted = ChatHistory.query.filter_by(user_id=user_id).delete(synchronize_session=False)
     db.session.commit()
     return deleted
 
 
+# รวบรวมข้อมูล Big Knowledge ทุกมิติของหุ้น (ราคา, เทคนิคอล, การทำนาย AI, ข่าวสาร, Time Machine)
 def build_rag_components(symbol: str, user_id: int) -> dict:
-    """Build the complete structured Big Knowledge data and factual lines for a stock."""
     stock = stock_service.get_stock_by_symbol(symbol)
     if not stock:
         return {
@@ -85,7 +85,7 @@ def build_rag_components(symbol: str, user_id: int) -> dict:
     latest_price_info = None
     technical_info = None
 
-    # 1. Historical Prices & Technical Indicators (D3)
+    # 1. ข้อมูลราคาปิดย้อนหลังและอินดิเคเตอร์ทางเทคนิค
     prices = (
         HistoricalPrice.query.filter_by(stock_id=stock.stock_id)
         .order_by(HistoricalPrice.date.desc())
@@ -120,7 +120,7 @@ def build_rag_components(symbol: str, user_id: int) -> dict:
             'change_pct': chg_pct,
         }
 
-        # 1-Year (up to 264 trading days) High / Low & SMA
+        # คำนวณราคาสูงสุด-ต่ำสุดรอบ 1 ปี และเส้นค่าเฉลี่ยเคลื่อนที่ SMA20, SMA50
         recent_1y = valid_prices[:264]
         highs = [float(p.high_price) for p in recent_1y if p.high_price is not None and not math.isnan(float(p.high_price))]
         lows = [float(p.low_price) for p in recent_1y if p.low_price is not None and not math.isnan(float(p.low_price))]
@@ -146,7 +146,7 @@ def build_rag_components(symbol: str, user_id: int) -> dict:
             'sma50': sma50_val,
         }
 
-    # 2. Deep Analysis & AI Prophet Forecast (D5)
+    # 2. ข้อมูลการพยากรณ์ราคา 7 วันล่วงหน้าจากโมเดล AI Prophet
     prophet_info = None
     try:
         deep = analysis_service.get_deep_analysis(stock.symbol)
@@ -184,7 +184,7 @@ def build_rag_components(symbol: str, user_id: int) -> dict:
                 f'[D5] ความน่าเชื่อถือของโมเดล AI: Accuracy {val.get("accuracy_pct", "N/A")}% | Loss (MAE) {val.get("mae", "N/A")} | ทดสอบย้อนหลัง {val.get("validation_points")} วัน'
             )
 
-    # 3. Market Sentiment & News (D4)
+    # 3. อารมณ์ข่าวสารและการวิเคราะห์ความรู้สึก (Sentiment)
     sentiment = deep.get('sentiment') if deep else None
     if not sentiment:
         try:
@@ -215,7 +215,7 @@ def build_rag_components(symbol: str, user_id: int) -> dict:
             'sample_titles': sample_titles,
         }
 
-    # 4. Time Machine / Backtest Simulation (D7)
+    # 4. ข้อมูลการจำลองผลตอบแทนย้อนหลัง (Time Machine Backtest)
     backtest_info = None
     try:
         backtest = backtest_service.run_backtest(stock.symbol, initial_amount=100000.0, months=6)
@@ -247,19 +247,19 @@ def build_rag_components(symbol: str, user_id: int) -> dict:
     }
 
 
+# รวมข้อมูลข้อเท็จจริงของหุ้นเป็นข้อความชุดเดียวสำหรับนำไปประกอบการตอบคำถาม
 def build_rag_context(symbol: str, user_id: int) -> str:
-    """Build the complete factual Big Knowledge boundary string for an answer from TradeSensei data only."""
     components = build_rag_components(symbol, user_id)
     return '\n'.join(components['raw_lines'])
 
 
+# สร้างคำตอบอิงตามข้อมูลจริงในระบบอย่างสุภาพ เป็นมิตร และถูกต้องตามหลักการลงทุน
 def _grounded_response(
     context: str,
     message: str,
     symbol: str,
     components: dict | None = None,
 ) -> tuple[str, list[str]]:
-    """Produce a human-friendly, empathetic, conversational response grounded strictly in TradeSensei facts."""
     if not components or not components.get('stock'):
         components = build_rag_components(symbol, 0)
 
@@ -289,8 +289,8 @@ def _grounded_response(
     return full_answer, flags
 
 
+# ส่งข้อมูลให้ Gemini ช่วยเรียบเรียงคำตอบเป็นภาษาไทยที่เป็นธรรมชาติ โดยไม่ออกนอกกรอบข้อมูล
 def _rewrite_with_gemini(facts: str, question: str, symbol: str) -> str | None:
-    """Use Gemini with Sensei Persona & Rules to craft human-friendly Thai explanations strictly grounded in facts."""
     model = _get_gemini_rewriter()
     if not model:
         return None
@@ -318,7 +318,7 @@ BIG KNOWLEDGE ({symbol}):
         if not answer:
             return None
 
-        # Clean any accidental citation references to guarantee strict compliance
+        # ลบข้อความอ้างอิงรหัสเอกสารออก เพื่อให้คำตอบเป็นธรรมชาติ
         import re
         answer = re.sub(r'\[D[1-9]\]', '', answer)
         answer = re.sub(r'แหล่งอ้างอิง:.*', '', answer, flags=re.MULTILINE).strip()
@@ -332,6 +332,7 @@ BIG KNOWLEDGE ({symbol}):
         return None
 
 
+# รับคำถามจากผู้ใช้ ประมวลผลข้อมูลหุ้น สร้างคำตอบ และบันทึกประวัติการสนทนา
 def chat(user_id: int, symbol: str, message: str) -> dict:
     message = (message or '').strip()
     if not message:
@@ -341,10 +342,10 @@ def chat(user_id: int, symbol: str, message: str) -> dict:
     components = build_rag_components(symbol, user_id)
     context = '\n'.join(components['raw_lines'])
 
-    # Deterministic response is always computed as the core grounded rule engine
+    # สร้างคำตอบพื้นฐานจากกฎเกณฑ์ข้อมูลจริง (Rule-based Grounded)
     deterministic_response, flags = _grounded_response(context, message, symbol, components)
 
-    # For chit-chat, identity, and out-of-domain rejections, return immediately without LLM rewrite
+    # หากเป็นการทักทาย ถามตัวตน หรือถามนอกเรื่อง ให้ตอบกลับทันทีโดยไม่ต้องเรียก LLM
     if 'NO_DISCLAIMER' in (flags or []):
         response_text = deterministic_response
         provider_name = f'{PROVIDER}_Grounded'

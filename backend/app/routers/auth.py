@@ -11,6 +11,7 @@ from app.services import admin_service, auth_service, google_auth_service
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
 
+# ตรวจสอบว่า Google Client ID ได้รับการตั้งค่าอย่างถูกต้องและไม่ใช่ค่า placeholder
 def _is_configured_client_id(cid: str) -> bool:
     if not cid:
         return False
@@ -18,9 +19,9 @@ def _is_configured_client_id(cid: str) -> bool:
     return not any(p in lower for p in ('your_google', 'your_', 'placeholder', 'example', 'change_me'))
 
 
+# API ดึงการตั้งค่า Authentication สำหรับ Frontend (เช่น Google Client ID)
 @auth_bp.route('/config', methods=['GET'])
 def auth_config():
-    """Public auth settings for the frontend (no secrets)."""
     valid_id = Config.GOOGLE_CLIENT_ID if _is_configured_client_id(Config.GOOGLE_CLIENT_ID) else None
     return success_response(
         data={
@@ -30,6 +31,7 @@ def auth_config():
     )
 
 
+# API เข้าสู่ระบบด้วยอีเมลและรหัสผ่าน
 @auth_bp.route('/login', methods=['POST'])
 @limiter.limit('5 per minute')
 def login():
@@ -44,19 +46,20 @@ def login():
     if err:
         admin_service.log_system_action(
             action_type='AUTH_LOGIN_FAILED',
-            description=f'Login failed for identifier={identifier.strip().lower()[:120]}',
+            description=f'เข้าสู่ระบบล้มเหลวสำหรับ={identifier.strip().lower()[:120]}',
             user_id=None,
         )
         return error_response(err, 401)
 
     admin_service.log_system_action(
         action_type='AUTH_LOGIN_SUCCESS',
-        description=f'Login success for {result["user"]["email"]}',
+        description=f'เข้าสู่ระบบสำเร็จสำหรับ {result["user"]["email"]}',
         user_id=int(result['user']['user_id']),
     )
     return success_response(**result)
 
 
+# API เข้าสู่ระบบด้วย Google OAuth Credential
 @auth_bp.route('/google', methods=['POST'])
 @limiter.limit('5 per minute')
 def google_login():
@@ -70,19 +73,19 @@ def google_login():
     if err:
         admin_service.log_system_action(
             action_type='AUTH_GOOGLE_FAILED',
-            description=f'Google login failed: {err[:120]}',
+            description=f'เข้าสู่ระบบด้วย Google ล้มเหลว: {err[:120]}',
             user_id=None,
         )
         return error_response(err, 401)
 
     admin_service.log_system_action(
         action_type='AUTH_GOOGLE_SUCCESS',
-        description=f'Google login for {result["user"]["email"]}',
+        description=f'เข้าสู่ระบบด้วย Google สำเร็จสำหรับ {result["user"]["email"]}',
         user_id=int(result['user']['user_id']),
     )
     return success_response(**result)
 
-
+# API ลงทะเบียนผู้ใช้งานใหม่
 @auth_bp.route('/register', methods=['POST'])
 @limiter.limit('3 per hour')
 def register():
@@ -107,12 +110,13 @@ def register():
 
     admin_service.log_system_action(
         action_type='AUTH_REGISTER',
-        description=f'Register new user: {result["user"]["email"]}',
+        description=f'สมัครสมาชิกผู้ใช้ใหม่: {result["user"]["email"]}',
         user_id=int(result['user']['user_id']),
     )
     return success_response(message='สมัครสมาชิกสำเร็จ', **result, status=201)
 
 
+# API ขอรหัส OTP สำหรับรีเซ็ตรหัสผ่านทางอีเมล
 @auth_bp.route('/forgot-password', methods=['POST'])
 @limiter.limit('10 per hour')
 def forgot_password():
@@ -128,6 +132,7 @@ def forgot_password():
     return success_response(message=msg)
 
 
+# API ตรวจสอบความถูกต้องของรหัส OTP รีเซ็ตรหัสผ่าน
 @auth_bp.route('/verify-otp', methods=['POST'])
 @limiter.limit('10 per minute')
 def verify_otp():
@@ -143,7 +148,7 @@ def verify_otp():
     return success_response(message=msg)
 
 
-
+# API ตั้งรหัสผ่านใหม่โดยใช้รหัส OTP ที่ถูกต้อง
 @auth_bp.route('/reset-password', methods=['POST'])
 @limiter.limit('5 per hour')
 def reset_password():
@@ -163,6 +168,7 @@ def reset_password():
     return success_response(message='ตั้งรหัสผ่านใหม่สำเร็จ กรุณาเข้าสู่ระบบ')
 
 
+# API ดึงข้อมูลส่วนตัวของผู้ใช้งานปัจจุบันที่เข้าสู่ระบบอยู่
 @auth_bp.route('/me', methods=['GET'])
 @jwt_required()
 def auth_me():
@@ -172,6 +178,7 @@ def auth_me():
     return success_response(user=user_to_dict(user))
 
 
+# API เปลี่ยนรหัสผ่านของผู้ใช้งานปัจจุบัน
 @auth_bp.route('/change-password', methods=['PUT'])
 @jwt_required()
 def change_password():
@@ -197,7 +204,7 @@ def change_password():
 
     admin_service.log_system_action(
         action_type='AUTH_CHANGE_PASSWORD',
-        description='User changed password',
+        description='ผู้ใช้งานเปลี่ยนรหัสผ่าน',
         user_id=int(get_jwt_identity()),
     )
     return success_response(message='เปลี่ยนรหัสผ่านสำเร็จ')

@@ -24,12 +24,6 @@ def list_all_stocks() -> list[dict]:
 
 # แปลงค่าตัวเลขทศนิยม ป้องกันค่า NaN หรือ Infinity ที่ทำให้ JSON พัง
 def _safe_float(value) -> float | None:
-    """Convert a price value to float.
-
-    Returns ``None`` for ``NULL`` / ``NaN`` / ``±Inf`` so that Flask's
-    ``jsonify`` never emits the JavaScript-only ``NaN`` or ``Infinity``
-    literals that ``JSON.parse()`` cannot handle.
-    """
     if value is None:
         return None
     try:
@@ -111,7 +105,6 @@ def get_news_for_symbol(symbol: str, limit: int = 5) -> list[dict] | None:
 
 # ดึงประวัติราคาหุ้นย้อนหลัง 2 ปีจาก Yahoo Finance เข้าฐานข้อมูล
 def fetch_stock_from_yfinance(symbol: str) -> tuple[int, str | None]:
-    """Pull 2y OHLCV from Yahoo Finance into DB. Returns (new_records, error)."""
     symbol = str(symbol).strip().upper()
     ticker = yf.Ticker(symbol)
     hist = ticker.history(period='2y')

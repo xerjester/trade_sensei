@@ -1,9 +1,10 @@
-"""Lightweight schema patches for existing databases (no Alembic)."""
+# สคริปต์อัปเดตโครงสร้างฐานข้อมูลแบบอัตโนมัติ (Schema Migration)
 from sqlalchemy import inspect, text
 
 from app.core.database import db
 
 
+# ตรวจสอบและเพิ่มคอลัมน์ google_id และปรับ password_hash ให้เป็น nullable สำหรับการล็อกอินผ่าน Google
 def apply_user_auth_columns() -> None:
     inspector = inspect(db.engine)
     if 'users' not in inspector.get_table_names():
@@ -17,7 +18,7 @@ def apply_user_auth_columns() -> None:
             'ALTER TABLE users ADD COLUMN google_id VARCHAR(128) UNIQUE'
         )
     if 'password_hash' in columns:
-        # Allow NULL for Google-only accounts on PostgreSQL
+        # อนุญาตให้คอลัมน์ password_hash เป็นค่าว่างได้ สำหรับผู้ใช้ที่เข้าสู่ระบบผ่าน Google
         statements.append(
             'ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL'
         )

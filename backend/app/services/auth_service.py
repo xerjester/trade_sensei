@@ -103,9 +103,8 @@ def change_password(
 
 # ส่งอีเมลรหัส OTP 6 ตัวผ่านบริการ Resend
 def _send_reset_email(email: str, code: str) -> None:
-    """Send a short-lived OTP via Resend; the API key stays server-side only."""
     if not Config.RESEND_API_KEY:
-        raise RuntimeError('Password reset email is not configured')
+        raise RuntimeError('ยังไม่ได้ตั้งค่าคีย์สำหรับส่งอีเมลรีเซ็ตรหัสผ่าน')
 
     import resend
 
@@ -127,7 +126,7 @@ def _send_reset_email(email: str, code: str) -> None:
             'html': html_content,
         })
     except Exception as e:
-        # If unverified domain error, retry with default verified testing sender
+        # หากเกิดข้อผิดพลาดเรื่องโดเมน ให้ลองส่งผ่านผู้ส่งทดสอบเริ่มต้นของ Resend
         if 'not verified' in str(e).lower() and sender != 'TradeSensei <onboarding@resend.dev>':
             resend.Emails.send({
                 'from': 'TradeSensei <onboarding@resend.dev>',
@@ -139,9 +138,8 @@ def _send_reset_email(email: str, code: str) -> None:
             raise
 
 
-# ขอรีเซ็ตรหัสผ่าน: สร้างรหัส OTP 6 หลัก แล้วส่งเข้าอีเมล (รหัสมีอายุ 10 นาที)
+# ขอรีเซ็ตรหัสผ่าน: ตรวจสอบบัญชีผู้ใช้และสร้างรหัส OTP 6 หลักส่งเข้าอีเมล
 def request_password_reset(email: str) -> tuple[bool, str]:
-    """Validate user exists and issue/email one 6-digit OTP."""
     clean_email = normalize_identifier(email)
     user = User.query.filter_by(email=clean_email).first()
     if not user:
@@ -159,7 +157,7 @@ def request_password_reset(email: str) -> tuple[bool, str]:
         rem = int(OTP_RESEND_COOLDOWN_SECONDS - (now - latest.created_at).total_seconds())
         return False, f'กรุณารอ {rem} วินาทีก่อนขอรหัส OTP ใหม่อีกครั้ง'
 
-    # Invalidate earlier codes before issuing this single-use six-digit code.
+    # ยกเลิกรหัสเดิมที่ยังไม่ได้ใช้ ก่อนสร้างรหัสใหม่ 6 หลัก
     PasswordResetOtp.query.filter_by(user_id=user.user_id, used_at=None).update(
         {'used_at': now}, synchronize_session=False
     )
@@ -210,7 +208,6 @@ def request_password_reset(email: str) -> tuple[bool, str]:
 
 # ตรวจสอบรหัส OTP 6 หลักว่าถูกต้องและยังไม่หมดอายุหรือไม่
 def verify_reset_otp(email: str, code: str) -> tuple[bool, str]:
-    """Verify that an OTP is correct and valid without consuming it yet."""
     clean_code = str(code or '').strip()
     if not clean_code or len(clean_code) != 6 or not clean_code.isdigit():
         return False, 'กรุณากรอกรหัส OTP เป็นตัวเลข 6 หลัก'
@@ -243,7 +240,6 @@ def verify_reset_otp(email: str, code: str) -> tuple[bool, str]:
 
 # ยืนยันรหัส OTP และตั้งรหัสผ่านใหม่ลงฐานข้อมูล
 def reset_password_with_otp(email: str, code: str, new_password: str) -> str | None:
-    """Verify an unexpired OTP with attempt limiting, then rotate the password."""
     validation_error = password_error(new_password)
     if validation_error:
         return validation_error

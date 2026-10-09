@@ -1,4 +1,4 @@
-"""CLI: batch Prophet training for all stocks."""
+# สคริปต์ CLI สำหรับสั่งเทรนโมเดล Prophet ให้กับหุ้นทุกตัวในระบบแบบ Batch
 import sys
 from pathlib import Path
 

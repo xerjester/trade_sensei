@@ -8,10 +8,10 @@ from app.services import admin_service, copilot_service
 chatbot_bp = Blueprint('chatbot', __name__, url_prefix='/api/copilot')
 
 
+# API ดึงประวัติการสนทนาระหว่างผู้ใช้งานกับ AI Copilot
 @chatbot_bp.route('/history', methods=['GET'])
 @jwt_required()
 def copilot_history():
-    """Return the signed-in member's own D6 history; never expose other users' chats."""
     claims = get_jwt()
     if claims.get('role') not in ('member', 'admin'):
         return jsonify({'status': 'error', 'message': 'สิทธิ์ไม่เพียงพอ'}), 403
@@ -24,10 +24,10 @@ def copilot_history():
         return jsonify({'status': 'error', 'message': 'ไม่สามารถโหลดประวัติการสนทนาได้'}), 500
 
 
+# API ลบประวัติการสนทนากับ AI Copilot ของผู้ใช้งานปัจจุบัน
 @chatbot_bp.route('/history', methods=['DELETE'])
 @jwt_required()
 def delete_copilot_history():
-    """Allow a member to clear their own D6 history from the chat modal."""
     claims = get_jwt()
     if claims.get('role') not in ('member', 'admin'):
         return jsonify({'status': 'error', 'message': 'สิทธิ์ไม่เพียงพอ'}), 403
@@ -36,7 +36,7 @@ def delete_copilot_history():
         deleted = copilot_service.clear_chat_history(user_id)
         admin_service.log_system_action(
             action_type='USER_COPILOT_HISTORY_CLEARED',
-            description=f'Cleared {deleted} Copilot history records',
+            description=f'ลบประวัติการสนทนาของ Copilot จำนวน {deleted} รายการ',
             user_id=user_id,
         )
         return jsonify({'status': 'success', 'message': 'ลบประวัติการสนทนาแล้ว', 'deleted': deleted}), 200
@@ -44,6 +44,7 @@ def delete_copilot_history():
         return jsonify({'status': 'error', 'message': 'ไม่สามารถลบประวัติการสนทนาได้'}), 500
 
 
+# API ส่งคำถามไปยัง AI Copilot พร้อมระบบ RAG ดึงข้อมูลหุ้นตัวที่ถาม
 @chatbot_bp.route('/chat', methods=['POST'])
 @jwt_required()
 @limiter.limit('20 per minute')
@@ -65,7 +66,7 @@ def copilot_chat():
         admin_service.log_system_action(
             action_type='USER_COPILOT_CHAT',
             description=(
-                f'Copilot chat symbol={str(symbol).strip().upper()} msg_len={len(str(message or ""))}'
+                f'สนทนากับ Copilot หุ้น={str(symbol).strip().upper()} ความยาวคำถาม={len(str(message or ""))}'
             ),
             user_id=int(get_jwt_identity()),
         )

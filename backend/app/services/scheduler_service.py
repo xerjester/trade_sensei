@@ -1,4 +1,4 @@
-"""Daily DFD 2.2 job: refresh external prices/news and store D3/D4/D7."""
+# ระบบตั้งเวลาทำงานอัตโนมัติ (Scheduler) — ดึงราคาหุ้นและข่าวสารรอบเที่ยงคืนทุกวัน
 import atexit
 import logging
 import os
@@ -7,27 +7,22 @@ from typing import Any
 from app.services.scraper_service import run_batch_scrape
 
 logger = logging.getLogger(__name__)
-# Kept as ``Any`` because APScheduler is imported lazily below.  This lets an
-# older Docker image boot and report a clear warning instead of failing Flask
-# imports before the image has been rebuilt with the new requirement.
+
+# ตัวแปรเก็บอินสแตนซ์ของ APScheduler สำหรับรันงานเบื้องหลัง
 _scheduler: Any = None
 
 
+# ฟังก์ชันดึงข้อมูลราคาและข่าวสารตลาดประจำวัน (รันภายใต้ Flask Application Context)
 def _daily_market_refresh(app) -> None:
-    """Run inside an application context because the scraper writes SQLAlchemy models."""
     with app.app_context():
         try:
             run_batch_scrape()
         except Exception:
-            logger.exception('Scheduled market/news refresh failed')
+            logger.exception('ระบบตั้งเวลาดึงข้อมูลตลาด/ข่าวสารอัตโนมัติขัดข้อง')
 
 
+# เริ่มต้นระบบตั้งเวลา Background Scheduler ให้ทำงานอัตโนมัติทุกเที่ยงคืน (เวลาประเทศไทย)
 def start_scheduler(app) -> None:
-    """Schedule one midnight Asia/Bangkok refresh per backend process.
-
-    Werkzeug's debug reloader starts a parent and child process; the parent is
-    intentionally skipped so it cannot run the daily pipeline twice.
-    """
     global _scheduler
     if _scheduler is not None:
         return
@@ -40,8 +35,7 @@ def start_scheduler(app) -> None:
         from apscheduler.triggers.cron import CronTrigger
     except ImportError:
         logger.warning(
-            'APScheduler is not installed; daily market/news refresh is disabled. '
-            'Rebuild the backend image after updating requirements.txt.'
+            'ไม่พบแพ็กเกจ APScheduler ระบบอัปเดตราคาและข่าวสารอัตโนมัติจะถูกปิดการทำงาน'
         )
         return
 

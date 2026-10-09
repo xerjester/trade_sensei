@@ -1,10 +1,8 @@
-"""Rate limiting for public and expensive API endpoints."""
+# ระบบจำกัดอัตราการเรียกใช้งาน API (Rate Limiting) ป้องกันการยิง Request ถี่เกินไป
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-
-# A shared limiter instance is initialised by the Flask app factory. Production
-# deployments should set RATELIMIT_STORAGE_URI to Redis so limits survive restarts.
+# อินสแตนซ์ Limiter ส่วนกลาง กำหนดโควตาการเรียกใช้งานต่อ IP address
 limiter = Limiter(
     key_func=get_remote_address,
     default_limits=['3600 per hour', '120 per minute'],

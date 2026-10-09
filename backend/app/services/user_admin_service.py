@@ -1,10 +1,11 @@
-"""Admin user management."""
+# บริการจัดการข้อมูลผู้ใช้งานสำหรับผู้ดูแลระบบ (Admin)
 from app.core.database import db
 from app.core.security import hash_password
 from app.core.validation import normalize_email, normalize_person_name, password_error
 from app.models import User
 
 
+# ดึงรายชื่อผู้ใช้งานทั้งหมดในระบบ เรียงจากล่าสุดไปเก่าสุด
 def list_users() -> list[dict]:
     users = User.query.order_by(User.created_at.desc()).all()
     return [
@@ -20,10 +21,12 @@ def list_users() -> list[dict]:
     ]
 
 
+# นับจำนวนผู้ดูแลระบบ (Admin) ทั้งหมดที่มีในระบบ
 def _count_admins() -> int:
     return User.query.filter_by(role='admin').count()
 
 
+# อัปเดตข้อมูลผู้ใช้งาน เช่น อีเมล ชื่อ สิทธิ์ (Role) หรือรหัสผ่านใหม่
 def update_user(user_id: int, data: dict, acting_admin_id: int) -> str | None:
     user = db.session.get(User, user_id)
     if not user:
@@ -70,6 +73,7 @@ def update_user(user_id: int, data: dict, acting_admin_id: int) -> str | None:
     return None
 
 
+# ลบผู้ใช้งานออกจากระบบ โดยป้องกันการลบตัวเองหรือลบ Admin คนสุดท้าย
 def delete_user(user_id: int, acting_admin_id: int) -> str | None:
     if user_id == acting_admin_id:
         return 'ไม่สามารถลบบัญชีของตัวเองได้'

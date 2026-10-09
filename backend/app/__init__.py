@@ -11,6 +11,7 @@ from app.routers import register_blueprints
 from app.services.scheduler_service import start_scheduler
 
 
+# สร้างและกำหนดค่า Flask Application (App Factory)
 def create_app():
     Config.validate()
 
@@ -31,6 +32,7 @@ def create_app():
         max_age=600,
     )
 
+    # จัดการ CORS Preflight OPTIONS Request สำหรับ Frontend
     @app.before_request
     def handle_cors_preflight():
         if request.method == 'OPTIONS':
@@ -44,9 +46,9 @@ def create_app():
                 res.headers['Vary'] = 'Origin'
                 return res
 
+    # ตรวจสอบว่าคำขอแบบเขียนข้อมูล (POST/PUT/PATCH) ต้องส่งข้อมูลในรูปแบบ JSON เสมอ
     @app.before_request
     def require_json_for_api_writes():
-        """Reject ambiguous write payloads before they reach route logic."""
         if (
             request.path.startswith('/api/')
             and request.method in {'POST', 'PUT', 'PATCH'}
@@ -55,23 +57,28 @@ def create_app():
         ):
             return {'status': 'error', 'message': 'คำขอต้องอยู่ในรูปแบบ application/json'}, 415
 
+    # จัดการข้อผิดพลาด 404 (ไม่พบหน้าที่ร้องขอ)
     @app.errorhandler(404)
     def not_found(_error):
         return {'status': 'error', 'message': 'ไม่พบหน้าหรือข้อมูลที่ร้องขอ'}, 404
 
+    # จัดการข้อผิดพลาด 500 (ระบบภายในเกิดปัญหา พร้อม rollback ฐานข้อมูล)
     @app.errorhandler(500)
     def internal_error(_error):
         db.session.rollback()
         return {'status': 'error', 'message': 'เกิดข้อผิดพลาดภายในระบบ กรุณาลองใหม่อีกครั้ง'}, 500
 
+    # จัดการข้อผิดพลาด 413 (ข้อมูลมีขนาดใหญ่เกินที่ระบบกำหนด)
     @app.errorhandler(413)
     def payload_too_large(_error):
         return {'status': 'error', 'message': 'ข้อมูลที่ส่งมีขนาดใหญ่เกินกำหนด'}, 413
 
+    # จัดการข้อผิดพลาด 429 (ส่งคำขอถี่เกินขีดจำกัด)
     @app.errorhandler(429)
     def rate_limited(_error):
         return {'status': 'error', 'message': 'ส่งคำขอมากเกินไป กรุณาลองใหม่ภายหลัง'}, 429
 
+    # กำหนด Security Headers และ CORS Headers ให้กับทุก HTTP Response
     @app.after_request
     def set_security_headers(response):
         response.headers['X-Content-Type-Options'] = 'nosniff'
@@ -101,10 +108,12 @@ def create_app():
     jwt = JWTManager(app)
     limiter.init_app(app)
 
+    # จัดการกรณีไม่มี Token แนบมาในคำขอ
     @jwt.unauthorized_loader
     def missing_jwt(_reason):
         return {'status': 'error', 'message': 'กรุณาเข้าสู่ระบบ'}, 401
 
+    # จัดการกรณี Token ไม่ถูกต้องหรือหมดอายุ
     @jwt.invalid_token_loader
     def invalid_jwt(_reason):
         return {'status': 'error', 'message': 'โทเค็นไม่ถูกต้องหรือหมดอายุ'}, 401

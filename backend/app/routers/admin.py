@@ -13,6 +13,7 @@ from app.services import admin_service, predictor_service, user_admin_service
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 
 
+# API เพิ่มหุ้นตัวใหม่เข้าสู่ระบบ (เฉพาะ Admin)
 @admin_bp.route('/stocks', methods=['POST'])
 @admin_required
 @limiter.limit('20 per hour')
@@ -39,6 +40,7 @@ def add_stock():
         return jsonify({'status': 'error', 'message': 'ไม่สามารถเพิ่มหุ้นได้'}), 500
 
 
+# API ลบหุ้นออกจากระบบ (เฉพาะ Admin)
 @admin_bp.route('/stocks/<symbol>', methods=['DELETE'])
 @admin_required
 def delete_stock(symbol):
@@ -57,6 +59,7 @@ def delete_stock(symbol):
         return jsonify({'status': 'error', 'message': 'ไม่สามารถลบหุ้นได้'}), 500
 
 
+# API สั่งรัน Scraper ดึงข้อมูลตลาดและข่าวสารผ่าน Background Process (เฉพาะ Admin)
 @admin_bp.route('/run-scraper', methods=['POST'])
 @admin_required
 @limiter.limit('2 per minute')
@@ -81,6 +84,7 @@ def run_scraper_api():
         return jsonify({'status': 'error', 'message': 'ไม่สามารถเริ่มดึงข้อมูลได้'}), 500
 
 
+# API สั่งเทรนโมเดล Prophet ทุกหุ้นผ่าน Background Process (เฉพาะ Admin)
 @admin_bp.route('/train-models', methods=['POST'])
 @admin_required
 @limiter.limit('1 per 5 minutes')
@@ -105,11 +109,11 @@ def train_models_api():
         return jsonify({'status': 'error', 'message': 'ไม่สามารถเริ่มเทรนโมเดลได้'}), 500
 
 
+# API สั่งเทรนโมเดล Prophet ทุกหุ้นแบบ Synchronous ทันที (เฉพาะ Admin)
 @admin_bp.route('/train-models/sync', methods=['POST'])
 @admin_required
 @limiter.limit('1 per 10 minutes')
 def train_models_sync():
-    """Synchronous batch train (for smaller datasets / testing)."""
     try:
         admin_service.log_system_action(
             action_type='ADMIN_TRAIN_MODELS_SYNC',
@@ -123,6 +127,7 @@ def train_models_sync():
         return jsonify({'status': 'error', 'message': 'ไม่สามารถเทรนโมเดลได้'}), 500
 
 
+# API ดึงรายชื่อผู้ใช้งานทั้งหมดในระบบ (เฉพาะ Admin)
 @admin_bp.route('/users', methods=['GET'])
 @admin_required
 def list_users():
@@ -133,6 +138,7 @@ def list_users():
         return jsonify({'status': 'error', 'message': 'ไม่สามารถโหลดรายชื่อผู้ใช้ได้'}), 500
 
 
+# API อัปเดตข้อมูลผู้ใช้งาน (เฉพาะ Admin)
 @admin_bp.route('/users/<int:user_id>', methods=['PUT'])
 @admin_required
 def update_user(user_id):
@@ -155,6 +161,7 @@ def update_user(user_id):
         return jsonify({'status': 'error', 'message': 'ไม่สามารถอัปเดตผู้ใช้ได้'}), 500
 
 
+# API ลบผู้ใช้งานออกจากระบบ (เฉพาะ Admin)
 @admin_bp.route('/users/<int:user_id>', methods=['DELETE'])
 @admin_required
 def delete_user(user_id):
@@ -171,6 +178,7 @@ def delete_user(user_id):
         return jsonify({'status': 'error', 'message': 'ไม่สามารถลบผู้ใช้ได้'}), 500
 
 
+# API ดึงบันทึกการทำงานของระบบ (System Logs) พร้อมตัวกรอง (เฉพาะ Admin)
 @admin_bp.route('/logs', methods=['GET'])
 @admin_required
 def get_logs():

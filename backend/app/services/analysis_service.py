@@ -1,4 +1,4 @@
-"""Deep analysis — trend + sentiment (documents.md §2.2)."""
+# ระบบวิเคราะห์หุ้นเชิงลึก — รวบรวมแนวโน้มราคาและอารมณ์ข่าวสาร
 import math
 
 from app.models import HistoricalPrice, PricePrediction

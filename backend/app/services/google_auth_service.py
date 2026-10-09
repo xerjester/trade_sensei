@@ -1,4 +1,4 @@
-"""Google Sign-In (ID token verification)."""
+# บริการเข้าสู่ระบบด้วย Google (Google Sign-In OAuth2 ID Token)
 import secrets
 
 from google.auth.transport import requests as google_requests
@@ -10,11 +10,12 @@ from app.core.security import build_access_token, hash_password, user_to_dict
 from app.models import User
 
 
+# สร้างรหัสผ่านสุ่มที่ไม่สามารถใช้ล็อกอินตรงได้ สำหรับบัญชีที่สมัครผ่าน Google OAuth
 def _unusable_password_hash() -> str:
-    """Placeholder for OAuth-only accounts (cannot log in with password)."""
     return hash_password(secrets.token_urlsafe(32))
 
 
+# ตรวจสอบว่ามีการตั้งค่า GOOGLE_CLIENT_ID ที่ถูกต้องแล้วหรือไม่
 def _is_configured_client_id() -> bool:
     if not Config.GOOGLE_CLIENT_ID:
         return False
@@ -22,6 +23,7 @@ def _is_configured_client_id() -> bool:
     return not any(p in lower for p in ('your_google', 'your_', 'placeholder', 'example', 'change_me'))
 
 
+# ตรวจสอบความถูกต้องของ Google ID Token กับเซิร์ฟเวอร์ Google OAuth2
 def verify_google_id_token(token: str) -> dict | None:
     if not _is_configured_client_id():
         return None
@@ -35,6 +37,7 @@ def verify_google_id_token(token: str) -> dict | None:
         return None
 
 
+# เข้าสู่ระบบหรือลงทะเบียนสมาชิกใหม่อัตโนมัติด้วยบัญชี Google
 def login_with_google(id_token_str: str) -> tuple[dict | None, str | None]:
     if not _is_configured_client_id():
         return None, 'ยังไม่ได้ตั้งค่า Google Login (GOOGLE_CLIENT_ID)'

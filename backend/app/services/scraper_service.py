@@ -1,4 +1,4 @@
-"""Batch data pipeline — Yahoo Finance OHLCV + news (documents.md §4.1)."""
+# ระบบ Data Pipeline ดึงข้อมูลราคาหุ้น OHLCV และข่าวสารจาก Yahoo Finance
 import math
 import time
 from datetime import datetime
@@ -11,29 +11,25 @@ from app.core.database import db
 from app.models import HistoricalPrice, News, Stock, SystemLog
 from app.services import sentiment_service
 
+# รายชื่อหุ้นเป้าหมายเริ่มต้น (SET50, หุ้นสหรัฐฯ, คริปโต, สินค้าโภคภัณฑ์)
 TARGET_STOCKS = [
-    # Top Thai SET50 Leaders
+    # หุ้นกลุ่มผู้นำ SET50 ประเทศไทย
     'PTT.BK', 'AOT.BK', 'DELTA.BK', 'ADVANC.BK',
     'CPALL.BK', 'KBANK.BK', 'SCB.BK', 'BDMS.BK',
     'GULF.BK', 'SCC.BK', 'TRUE.BK', 'MINT.BK',
     'PTTEP.BK', 'BBL.BK', 'CPN.BK', 'BH.BK',
-    # Top US Technology & Market Leaders
+    # หุ้นกลุ่มเทคโนโลยีและผู้นำตลาดสหรัฐฯ
     'AAPL', 'MSFT', 'TSLA', 'NVDA',
     'GOOGL', 'AMZN', 'META', 'AMD', 'NFLX',
-    # Top Cryptocurrencies
+    # สกุลเงินดิจิทัลชั้นนำ
     'BTC-USD', 'ETH-USD', 'SOL-USD', 'BNB-USD',
-    # Commodities & Precious Metals (Gold)
+    # สินค้าโภคภัณฑ์และโลหะมีค่า (ทองคำ)
     'GLD', 'GOLD',
 ]
 
 
+# แปลงค่าราคาให้เป็น float อย่างปลอดภัย ป้องกันค่า NaN หรือ Infinity เพื่อป้องกันข้อผิดพลาดเวลาแปลงเป็น JSON
 def _safe_float(value) -> float | None:
-    """Convert a yfinance price value to float.
-
-    Returns ``None`` for ``NULL`` / ``NaN`` / ``±Inf`` so that
-    ``JSON.parse()`` on the frontend never encounters an invalid token.
-    PostgreSQL stores ``None`` as SQL ``NULL`` cleanly.
-    """
     if value is None:
         return None
     try:
@@ -43,9 +39,8 @@ def _safe_float(value) -> float | None:
         return None
 
 
-
+# จัดรูปแบบโครงสร้างข้อมูลข่าวสารจาก Yahoo Finance ให้เป็นมาตรฐานเดียวกัน
 def _normalise_yahoo_news(items: list[dict]) -> list[dict]:
-    """Handle both yfinance's legacy and nested Yahoo news response formats."""
     normalised = []
     for item in items:
         content = item.get('content') if isinstance(item.get('content'), dict) else item
@@ -59,8 +54,8 @@ def _normalise_yahoo_news(items: list[dict]) -> list[dict]:
     return normalised
 
 
+# ดึงข่าวสารจาก Yahoo Finance RSS Feed สำรองกรณี API หลักไม่ส่งข้อมูลข่าวกลับมา
 def _fetch_yahoo_rss_news(symbol: str) -> list[dict]:
-    """Fallback when yfinance returns no news, keeping the D4 panel populated."""
     response = requests.get(
         'https://feeds.finance.yahoo.com/rss/2.0/headline',
         params={'s': symbol, 'region': 'US', 'lang': 'en-US'},
@@ -80,8 +75,8 @@ def _fetch_yahoo_rss_news(symbol: str) -> list[dict]:
     ]
 
 
+# แปลง timestamp หรือ string วันที่ของข่าวให้เป็น datetime object
 def _parse_news_datetime(value) -> datetime:
-    """Convert provider timestamps defensively; freshness is preferable to failure."""
     if isinstance(value, (int, float)):
         return datetime.fromtimestamp(value)
     if isinstance(value, str):
@@ -92,8 +87,8 @@ def _parse_news_datetime(value) -> datetime:
     return datetime.utcnow()
 
 
+# ดึงข่าวสารล่าสุดของหุ้นตัวนั้นๆ บันทึกลงฐานข้อมูล และสั่งวิเคราะห์ Sentiment อารมณ์ข่าว
 def scrape_news_for_stock(stock: Stock) -> int:
-    """Fetch external news for a single stock from Yahoo Finance / RSS, insert into DB, and analyze sentiment."""
     if not stock:
         return 0
     symbol = stock.symbol
@@ -115,7 +110,7 @@ def scrape_news_for_stock(stock: Stock) -> int:
                         news_items.append(r)
                         seen_titles.add(r['title'])
 
-        # Fallback for Thai / SET symbols if still empty: search with base symbol without .BK
+        # กรณีหุ้นไทย (.BK) หากไม่พบข่าว ให้ค้นหาด้วยชื่อย่อหลักที่ไม่มี .BK
         if not news_items and symbol.endswith('.BK'):
             base_sym = symbol.replace('.BK', '')
             rss_base = _fetch_yahoo_rss_news(base_sym)
@@ -184,12 +179,8 @@ def scrape_news_for_stock(stock: Stock) -> int:
     return new_news_count
 
 
+# ดึงข้อมูลราคาตลาดย้อนหลังและข่าวสารของหุ้นทุกตัวที่มีในระบบเว็บ
 def run_batch_scrape() -> int:
-    """DFD 2.2: fetch external market/news data into D3/D4, then trigger D4 sentiment.
-
-    Per requirement: 'admin เวลากดปุ่มดึงข้อมูลตลาด ให้เอาข้อมูลตลาดที่อยู่บนเว็บเท่านั้น'
-    Scrapes only instruments currently registered on the website (Stock.query.all()).
-    """
     total_records_added = 0
 
     existing_stocks = Stock.query.all()
@@ -280,8 +271,7 @@ def run_batch_scrape() -> int:
                 total_records_added += new_records
 
         except Exception:
-            # Do not allow one provider failure to prevent the remaining symbols
-            # from being ingested; rollback keeps the D3/D4 transaction clean.
+            # หากเกิดข้อผิดพลาดในการดึงข้อมูลหุ้นตัวใดตัวหนึ่ง ให้ rollback และข้ามไปทำตัวถัดไป
             db.session.rollback()
 
         time.sleep(1)

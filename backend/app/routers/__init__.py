@@ -9,6 +9,7 @@ from app.routers.predictions import predictions_bp
 from app.routers.stocks import stocks_bp
 
 
+# ลงทะเบียน Router Blueprints ทั้งหมดเข้ากับ Flask Application
 def register_blueprints(app):
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp)

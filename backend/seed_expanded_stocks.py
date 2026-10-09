@@ -1,4 +1,4 @@
-"""Seed expanded stock catalog and historical prices."""
+# สคริปต์เพิ่มข้อมูลหุ้นและประวัติราคาจำลองเริ่มต้นในฐานข้อมูล
 import math
 import random
 from datetime import datetime, timedelta
@@ -48,7 +48,7 @@ with app.app_context():
             added_stocks += 1
             print(f"Created new stock: {symbol} - {name} ({cat})")
 
-        # Check existing historical prices
+        # ตรวจสอบประวัติราคาที่มีอยู่แล้วในฐานข้อมูล
         hp_count = HistoricalPrice.query.filter_by(stock_id=stock.stock_id).count()
         if hp_count < 30:
             print(f"Fetching/generating price series for {symbol} (currently {hp_count} records)...")
@@ -79,7 +79,7 @@ with app.app_context():
                 print(f"  yfinance fetch skipped for {symbol}: {e}")
 
             if not fetched:
-                # Generate realistic 1-year historical prices
+                # จำลองข้อมูลราคาย้อนหลัง 1 ปีอย่างสมจริง กรณีดึงจาก yfinance ไม่ได้
                 name, cat, base_price = STOCK_METADATA.get(symbol, (symbol, 'Equity', 50.0))
                 price = base_price * 0.85
                 random.seed(sum(ord(c) for c in symbol))
@@ -107,7 +107,7 @@ with app.app_context():
                 db.session.commit()
                 print(f"  Generated synthesized price history for {symbol}")
 
-        # Check existing news
+        # ตรวจสอบและสร้างข่าวเริ่มต้นของหุ้น
         news_count = News.query.filter_by(stock_id=stock.stock_id).count()
         if news_count == 0:
             n = News(

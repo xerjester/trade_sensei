@@ -1,7 +1,7 @@
 let isLoggedIn = false;
 let currentUser = null;
 let currentSymbol = 'PTT.BK';
-// Members begin with a useful long-term context instead of a single trading day.
+// สมาชิกเริ่มต้นด้วยมุมมองระยะยาว 1 ปีเพื่อให้เห็นภาพรวมที่ครอบคลุม
 let currentChartRange = '1Y';
 let isPredictionEnabled = false;
 let currentTheme = 'dark';
@@ -390,7 +390,7 @@ async function drawChart(symbol, showAI = false) {
         }
     }
 
-    // Ignore an older request that completed after the user selected another stock.
+    // ยกเลิกคำขอที่เก่ากว่าหากผู้ใช้เปลี่ยนไปเลือกหุ้นตัวอื่นแล้ว
     if (requestId !== chartRequestId) return;
 
     if (!chartData.dates?.length) {
@@ -414,7 +414,7 @@ async function drawChart(symbol, showAI = false) {
         ? getFilteredChartData(chartData, currentChartRange)
         : chartData;
 
-    // Update MarketChart Header Ticker & Candle Stats
+    // อัปเดตราคาล่าสุด การเปลี่ยนแปลง และสถิติของกราฟแท่งเทียน
     if (visibleData.closes?.length) {
         const lastClose = visibleData.closes[visibleData.closes.length - 1];
         const prevClose = visibleData.closes.length > 1 ? visibleData.closes[visibleData.closes.length - 2] : lastClose;
@@ -638,7 +638,7 @@ async function drawChart(symbol, showAI = false) {
     if (confidenceTrace) data.push(confidenceTrace);
     if (aiTrace) data.push(aiTrace);
 
-    // Keep the chart timeframe scale constant without zooming in
+    // ควบคุมสเกลช่วงเวลาของกราฟให้คงที่โดยไม่ซูมลึกเกินไป
     const isSingleDay = visibleData.dates.length === 1;
     let initialStartDate = firstDateStr;
     let initialEndDate = maxAllowedDateStr;
@@ -792,21 +792,21 @@ function initBacktestAmountInput() {
         const rawValue = input.value;
         const cursorPos = input.selectionStart ?? rawValue.length;
 
-        // Count how many numeric digits were before the cursor
+        // นับจำนวนตัวเลขที่อยู่ก่อนตำแหน่งเคอร์เซอร์
         const digitsBeforeCursor = rawValue.slice(0, cursorPos).replace(/\D/g, '').length;
 
-        // Get only digits
+        // ดึงเฉพาะตัวเลขออกมา
         const digits = rawValue.replace(/\D/g, '');
         if (!digits) {
             input.value = '';
             return;
         }
 
-        // Format with thousands comma
+        // จัดรูปแบบใส่เครื่องหมายจุลภาคคั่นหลักพัน
         const formatted = Number(digits).toLocaleString('en-US');
         input.value = formatted;
 
-        // Restore cursor position accurately
+        // คืนตำแหน่งเคอร์เซอร์ให้ตรงจุดเดิมอย่างแม่นยำ
         let newPos = formatted.length;
         let count = 0;
         for (let i = 0; i < formatted.length; i++) {
@@ -1064,16 +1064,16 @@ function formatCopilotAiMessage(rawText) {
     if (!rawText) return '';
     let text = String(rawText);
 
-    // Strip doc citations [D1]-[D9] and any source references
+    // ลบการอ้างอิงรหัสเอกสาร [D1]-[D9] และข้อความแหล่งอ้างอิงออก
     text = text.replace(/\[D[0-9]\]/g, '');
     text = text.replace(/แหล่งอ้างอิง:.*$/gm, '');
 
-    // Escape HTML to prevent XSS
+    // แปลงอักขระพิเศษเพื่อป้องกันช่องโหว่ XSS
     const temp = document.createElement('div');
     temp.textContent = text;
     let safeHtml = temp.innerHTML;
 
-    // Convert escaped badge spans back to actual safe badge elements
+    // แปลงแท็ก span ป้ายกำกับกลับเป็น HTML ที่ปลอดภัย
     safeHtml = safeHtml.replace(
         /&lt;span class=(?:&quot;|"|&#39;|')badge-bullish(?:&quot;|"|&#39;|')&gt;(.*?)&lt;\/span&gt;/gi,
         '<span class="badge-bullish">$1</span>'
@@ -1087,10 +1087,10 @@ function formatCopilotAiMessage(rawText) {
         '<span class="badge-neutral">$1</span>'
     );
 
-    // Markdown bold: **text** -> <strong>text</strong>
+    // แปลง Markdown ตัวหนา: **ข้อความ** เป็น <strong>ข้อความ</strong>
     safeHtml = safeHtml.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
-    // Convert newlines to breaks/paragraphs cleanly
+    // แปลงการขึ้นบรรทัดใหม่ให้เป็นแท็ก br อย่างสวยงาม
     safeHtml = safeHtml.replace(/\n\n+/g, '<br><br>');
     safeHtml = safeHtml.replace(/\n/g, '<br>');
 
@@ -1126,8 +1126,7 @@ async function loadCopilotHistory() {
         const result = await response.json();
         if (result.status !== 'success' || !result.data?.length) return;
 
-        // Replace only the untouched placeholder greeting. If the member has
-        // already sent a new message, avoid inserting older records after it.
+        // แทนที่เฉพาะข้อความทักทายเริ่มต้น หากสมาชิกพิมพ์ข้อความใหม่แล้วจะไม่แทรกประวัติเก่า
         if (!(history.children.length === 1 && history.firstElementChild?.classList.contains('ai'))) return;
         history.replaceChildren();
         result.data.forEach((entry) => {
@@ -1136,7 +1135,7 @@ async function loadCopilotHistory() {
         });
         history.scrollTop = history.scrollHeight;
     } catch {
-        // Keep the friendly empty-state message if the network is unavailable.
+        // คงข้อความต้อนรับเดิมไว้กรณีเชื่อมต่อเครือข่ายไม่ได้
     }
 }
 
@@ -1297,15 +1296,13 @@ document.getElementById('sector-filter')?.addEventListener('change', (e) => {
 });
 
 document.getElementById('stock-search')?.addEventListener('input', (e) => {
-    // A contenteditable search editor prevents browsers from attaching saved
-    // login/password suggestions, unlike a regular text input.
+    // ใช้ contenteditable เพื่อป้องกันเบราว์เซอร์แนะนำข้อความ autofill เหมือนช่อง input ปกติ
     stockSearchQuery = e.target.textContent.trim();
     const sector = document.getElementById('sector-filter')?.value || 'all';
     renderStockList(sector);
 });
 
-// Keep dashboard utility fields empty on page load. This also clears values
-// restored by browser form-state caching; it never runs after the user types.
+// ล้างค่าในช่องค้นหาเมื่อโหลดหน้าใหม่ เพื่อป้องกันค่าตกค้างจากการแคชของเบราว์เซอร์
 window.addEventListener('pageshow', (event) => {
     if (!event.persisted) return;
     const stockSearch = document.getElementById('stock-search');
@@ -1364,7 +1361,7 @@ function initLandingInteractions() {
         });
     });
 
-    // A small pointer light makes the artwork react without moving the content.
+    // เพิ่มเอฟเฟกต์แสงไฟสปอตไลต์ตามตำแหน่งเมาส์บนหน้าจอ
     let frameId = null;
     landing.addEventListener('pointermove', (event) => {
         const bounds = landing.getBoundingClientRect();

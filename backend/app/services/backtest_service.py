@@ -1,13 +1,14 @@
-"""Time Machine backtest vs deposit benchmark (documents.md §2.2)."""
+# ระบบจำลองการลงทุนย้อนหลัง (Time Machine Backtest) เปรียบเทียบกับผลตอบแทนเงินฝากธนาคาร
 import math
 from datetime import datetime, timedelta
 
 from app.models import HistoricalPrice
 from app.services.stock_service import get_stock_by_symbol
 
-DEFAULT_DEPOSIT_RATE_ANNUAL = 0.025  # 2.5% per year
+DEFAULT_DEPOSIT_RATE_ANNUAL = 0.025  # อัตราดอกเบี้ยเงินฝากธนาคารอ้างอิง 2.5% ต่อปี
 
 
+# จำลองผลตอบแทนการลงทุนย้อนหลังตามระยะเวลาที่ระบุ คำนวณกำไร/ขาดทุน และเปรียบเทียบกับเงินฝาก
 def run_backtest(
     symbol: str,
     months: int = 6,

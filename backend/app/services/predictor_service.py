@@ -1,9 +1,5 @@
-"""DFD 3.1 — prepare prices, forecast with Prophet, then store D5 + D7.
-
-The service deliberately uses *only* data available at prediction time.  In
-particular, volume is not used as a future regressor because future volume is
-unknown and would make the forecast look better in testing than in production.
-"""
+# ระบบพยากรณ์ราคาหุ้นล่วงหน้าด้วย Facebook Prophet
+# นำราคาปิดย้อนหลังมาแปลงข้อมูล คำนวณแนวโน้ม และบันทึกผลการทำนาย 7 วันลงฐานข้อมูล
 import json
 import logging
 from datetime import datetime, timedelta
@@ -25,9 +21,8 @@ CACHE_HOURS = 12
 VALIDATION_DAYS = 14
 
 
-# แปลงข้อมูลการทำนายจากฐานข้อมูลเป็นรูปแบบ dict เพื่อส่งให้ Frontend
+# แปลงข้อมูลการทำนายจากฐานข้อมูลเป็นรูปแบบ dict เพื่อส่งให้ Frontend ใช้งาน
 def _predictions_to_dict(rows):
-    """Convert persisted D5 rows into the stable API payload."""
     return [
         {
             'predict_date': row.predict_date.strftime('%Y-%m-%d'),
@@ -40,9 +35,8 @@ def _predictions_to_dict(rows):
     ]
 
 
-# เตรียมข้อมูลราคาหุ้นและแปลงเป็น log-scale เพื่อส่งให้ Facebook Prophet
+# เตรียมข้อมูลราคาหุ้น คัดกรองค่าว่าง และแปลงราคาเป็น log-scale เพื่อส่งให้ Facebook Prophet
 def _prepare_price_frame(prices: list[HistoricalPrice]) -> pd.DataFrame:
-    """DFD 3.1.1: validate, sort and transform D3 closing prices for Prophet."""
     frame = pd.DataFrame({
         'ds': pd.to_datetime([price.date for price in prices]),
         'close': [float(price.close_price) for price in prices],
@@ -52,23 +46,19 @@ def _prepare_price_frame(prices: list[HistoricalPrice]) -> pd.DataFrame:
     if len(frame) < MIN_HISTORY_DAYS:
         raise ValueError(f'ต้องมีราคาที่ใช้ได้อย่างน้อย {MIN_HISTORY_DAYS} วัน')
 
-    # Log scale makes the model respond to percentage moves more consistently
-    # across low-priced and high-priced instruments, while expm1 below keeps
-    # every published price strictly non-negative.
+    # แปลงราคาเป็น log-scale เพื่อให้โมเดลตอบสนองต่อการเปลี่ยนแปลงเป็นเปอร์เซ็นต์อย่างสม่ำเสมอ
     frame['y'] = np.log1p(frame.pop('close'))
     return frame[['ds', 'y']]
 
 
-# ตรวจสอบความถี่ของตลาด (วันทำการ 'B' สำหรับหุ้น หรือทุกวัน 'D' สำหรับคริปโต)
+# ตรวจสอบความถี่ของตลาด (วันทำการ 'B' สำหรับหุ้น หรือทุกวัน 'D' สำหรับคริปโทเคอร์เรนซี)
 def _infer_market_frequency(price_frame: pd.DataFrame) -> str:
-    """Use calendar days for 24/7 assets; use business days for stock exchanges."""
     weekday_values = price_frame['ds'].dt.weekday
     return 'D' if (weekday_values >= 5).any() else 'B'
 
 
-# ตั้งค่าพารามิเตอร์โมเดล Prophet (Seasonality, Trend, กรอบความเชื่อมั่น 90%)
+# กำหนดค่าพารามิเตอร์โมเดล Facebook Prophet (Seasonality, Trend, กรอบความเชื่อมั่น 90%)
 def _build_model(history_size: int) -> Prophet:
-    """DFD 3.1.2: configure a conservative, repeatable time-series model."""
     return Prophet(
         growth='linear',
         weekly_seasonality=True,
@@ -82,9 +72,8 @@ def _build_model(history_size: int) -> Prophet:
     )
 
 
-# วัดความแม่นยำของโมเดลย้อนหลังด้วยวิธี Hold-out (คำนวณค่า MAE และ MAPE)
+# วัดความแม่นยำของโมเดลย้อนหลังด้วยวิธี Hold-out (คำนวณค่าความคลาดเคลื่อน MAE และ MAPE)
 def _validation_metrics(frame: pd.DataFrame, frequency: str) -> dict:
-    """Measure a hold-out window so D5 records model quality, not only a guess."""
     holdout = min(VALIDATION_DAYS, max(5, len(frame) // 5))
     if len(frame) < MIN_HISTORY_DAYS + holdout:
         return {'validation_points': 0, 'mae': None, 'mape_pct': None}
@@ -103,7 +92,7 @@ def _validation_metrics(frame: pd.DataFrame, frequency: str) -> dict:
     }
 
 
-# ดึงผลการทำนายที่เคยคำนวณไว้แล้ว (Cache 12 ชั่วโมง) เพื่อไม่ต้องคำนวณใหม่ทุกครั้ง
+# ดึงผลการทำนายที่เคยคำนวณไว้แล้วจาก Cache (อายุ 12 ชั่วโมง) เพื่อไม่ต้องคำนวณใหม่ทุกครั้ง
 def _get_cached_predictions(stock_id, last_price_date):
     cutoff = datetime.utcnow() - timedelta(hours=CACHE_HOURS)
     cached = (
@@ -116,9 +105,8 @@ def _get_cached_predictions(stock_id, last_price_date):
     return _predictions_to_dict(cached[:FORECAST_DAYS]) if len(cached) >= FORECAST_DAYS else None
 
 
-# บันทึกผลการทำนาย 7 วันและข้อมูลโมเดลลงฐานข้อมูล
+# บันทึกผลการทำนายล่วงหน้า 7 วันและโครงสร้างโมเดลลงฐานข้อมูล
 def _save_forecast_artifacts(stock_id: int, predictions: list[dict], model: Prophet, metadata: dict) -> None:
-    """DFD 3.1.4: atomically persist forecast results and model metadata to D5."""
     PricePrediction.query.filter_by(stock_id=stock_id).delete()
     StockModel.query.filter_by(stock_id=stock_id).delete()
     for item in predictions:
@@ -131,8 +119,7 @@ def _save_forecast_artifacts(stock_id: int, predictions: list[dict], model: Prop
             trend_component=str(item['trend_component']),
         ))
 
-    # JSONB retains the model state, configuration, training date, and hold-out
-    # quality metrics.  This meets D5's model-parameter/forecast-components flow.
+    # บันทึกสถานะโมเดล ค่าพารามิเตอร์ และตัววัดผลความแม่นยำเป็น JSON
     db.session.add(StockModel(
         stock_id=stock_id,
         model_json={**metadata, 'prophet_model': json.loads(model_to_json(model))},
@@ -140,17 +127,15 @@ def _save_forecast_artifacts(stock_id: int, predictions: list[dict], model: Prop
     db.session.commit()
 
 
-# ดึงค่าความแม่นยำและสถิติของโมเดล (MAE, Accuracy %) ไปแสดงบนหน้าเว็บ
+# ดึงค่าคุณภาพและความแม่นยำของโมเดล (MAE, Accuracy %) ไปแสดงผลบนหน้าจอ
 def get_forecast_quality(stock_id: int) -> dict | None:
-    """Return safe D5 metadata for the dashboard; never expose the model payload."""
     saved_model = StockModel.query.filter_by(stock_id=stock_id).order_by(StockModel.updated_at.desc()).first()
     if not saved_model or not isinstance(saved_model.model_json, dict):
         return None
     metadata = saved_model.model_json
     validation = metadata.get('validation') or {}
     mape = validation.get('mape_pct')
-    # Accuracy is a transparent display metric derived from MAPE, capped to a
-    # human-readable 0–100% range; MAE remains the actual price-unit loss.
+    # คำนวณเปอร์เซ็นต์ความแม่นยำจากค่า MAPE (อยู่ในช่วง 0–100%)
     accuracy_pct = round(max(0, min(100, 100 - float(mape))), 2) if mape is not None else None
     return {
         'trained_at': metadata.get('trained_at'),
@@ -159,9 +144,8 @@ def get_forecast_quality(stock_id: int) -> dict | None:
     }
 
 
-# ฟังก์ชันหลัก: คำนวณและพยากรณ์ราคาหุ้นล่วงหน้า 7 วัน ด้วย Facebook Prophet
+# พยากรณ์ราคาหุ้นล่วงหน้า 7 วัน ด้วยโมเดล Facebook Prophet
 def run_prophet_forecast(stock_id: int, force_refresh: bool = False) -> tuple[list[dict], bool]:
-    """DFD 3.1.1–3.1.4: prepare D3 prices, predict seven market days, store D5."""
     prices = HistoricalPrice.query.filter_by(stock_id=stock_id).order_by(HistoricalPrice.date.asc()).all()
     if len(prices) < MIN_HISTORY_DAYS:
         raise ValueError(
@@ -181,7 +165,7 @@ def run_prophet_forecast(stock_id: int, force_refresh: bool = False) -> tuple[li
     model = _build_model(len(frame))
     model.fit(frame)
 
-    # freq is inferred from stored D3 data, avoiding weekday-only forecasts for crypto.
+    # สร้างโครงสร้างวันในอนาคตตามความถี่ของตลาด (วันทำการหรือทุกวัน)
     future = model.make_future_dataframe(periods=FORECAST_DAYS, freq=frequency)
     forecast = model.predict(future)
     future_only = forecast[forecast['ds'] > frame['ds'].max()].head(FORECAST_DAYS)
@@ -209,9 +193,8 @@ def run_prophet_forecast(stock_id: int, force_refresh: bool = False) -> tuple[li
     return predictions, False
 
 
-# สั่งรันเทรนโมเดล Prophet ให้กับหุ้นทุกตัวในระบบ (สำหรับหน้า Admin)
+# สั่งรันเทรนโมเดล Prophet ให้กับหุ้นทุกตัวในระบบ (สำหรับผู้ดูแลระบบ)
 def run_batch_train_all() -> dict:
-    """Admin DFD 3.1 trigger: train every stock and record the D7 audit event."""
     success, failed = [], []
     for stock in Stock.query.all():
         try:

@@ -7,6 +7,7 @@ from app.services import stock_service
 news_bp = Blueprint('news', __name__, url_prefix='/api')
 
 
+# API ดึงรายการข่าวสารล่าสุดของหุ้นตัวนั้นๆ พร้อมบทวิเคราะห์อารมณ์ข่าว
 @news_bp.route('/news/<symbol>', methods=['GET'])
 @limiter.exempt
 def get_stock_news(symbol):

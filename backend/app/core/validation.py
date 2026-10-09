@@ -1,22 +1,24 @@
-"""Small allow-list validators for untrusted HTTP input."""
+# โมดูลตรวจสอบและปรับรูปแบบข้อมูลนำเข้า (Input Validation)
 import re
 
 EMAIL_RE = re.compile(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
 SYMBOL_RE = re.compile(r'^[A-Z0-9][A-Z0-9.\-]{0,14}$')
 
 
+# ตรวจสอบและแปลงรูปแบบอีเมลให้เป็นตัวพิมพ์เล็กที่ถูกต้อง
 def normalize_email(value: object) -> str | None:
     email = str(value or '').strip().lower()
     return email if len(email) <= 150 and EMAIL_RE.fullmatch(email) else None
 
 
+# ตรวจสอบความถูกต้องของชื่อย่อหุ้น (เช่น PTT.BK, AAPL)
 def normalize_symbol(value: object) -> str | None:
     symbol = str(value or '').strip().upper()
     return symbol if SYMBOL_RE.fullmatch(symbol) else None
 
 
+# ตรวจสอบและกรองอักขระพิเศษออกจากชื่อผู้ใช้งาน
 def normalize_person_name(value: object, *, required: bool = False) -> str | None:
-    """Accept international names while rejecting markup and control characters."""
     name = str(value or '').strip()
     if not name:
         return None if required else ''
@@ -25,6 +27,7 @@ def normalize_person_name(value: object, *, required: bool = False) -> str | Non
     return name
 
 
+# ตรวจสอบความปลอดภัยและความยาวของรหัสผ่านตามเงื่อนไขที่กำหนด
 def password_error(value: object) -> str | None:
     password = str(value or '')
     if len(password) < 8:

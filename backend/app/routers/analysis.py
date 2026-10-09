@@ -8,6 +8,7 @@ from app.services import admin_service, analysis_service
 analysis_bp = Blueprint('analysis', __name__, url_prefix='/api')
 
 
+# API ดึงผลวิเคราะห์เชิงลึกของหุ้น (ตัวชี้วัดเทคนิค, อารมณ์ข่าวสาร, สัญญาณซื้อขาย)
 @analysis_bp.route('/analysis/<symbol>', methods=['GET'])
 @limiter.exempt
 @jwt_required()
@@ -26,14 +27,14 @@ def get_analysis(symbol):
     if not data:
         admin_service.log_system_action(
             action_type='USER_ANALYSIS_NOT_FOUND',
-            description=f'Analysis not found for {str(symbol).strip().upper()}',
+            description=f'ไม่พบข้อมูลการวิเคราะห์สำหรับ {str(symbol).strip().upper()}',
             user_id=int(get_jwt_identity()),
         )
         return jsonify({'status': 'error', 'message': 'ไม่พบข้อมูลหุ้นในระบบ'}), 404
 
     admin_service.log_system_action(
         action_type='USER_ANALYSIS',
-        description=f'Get analysis for {str(symbol).strip().upper()}',
+        description=f'ดึงข้อมูลบทวิเคราะห์หุ้น {str(symbol).strip().upper()}',
         user_id=int(get_jwt_identity()),
     )
     return jsonify({'status': 'success', 'data': data}), 200

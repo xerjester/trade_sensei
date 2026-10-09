@@ -8,6 +8,7 @@ from app.services import admin_service, predictor_service, stock_service
 predictions_bp = Blueprint('predictions', __name__, url_prefix='/api')
 
 
+# API พยากรณ์ราคาหุ้นล่วงหน้า 30 วันด้วยโมเดล Facebook Prophet
 @predictions_bp.route('/predict/<symbol>', methods=['GET'])
 @limiter.limit('60 per minute')
 @jwt_required()

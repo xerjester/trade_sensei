@@ -1,3 +1,4 @@
+# รวมโมเดลฐานข้อมูลทั้งหมดของระบบ TradeSensei
 from app.models.schema import (
     ChatHistory,
     HistoricalPrice,

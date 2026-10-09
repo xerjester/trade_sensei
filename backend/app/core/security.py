@@ -8,14 +8,17 @@ from app.core.database import db
 from app.models.schema import User
 
 
+# แฮชรหัสผ่านด้วยอัลกอริทึม scrypt เพื่อความปลอดภัย
 def hash_password(password: str) -> str:
     return generate_password_hash(password, method='scrypt')
 
 
+# ตรวจสอบความถูกต้องของรหัสผ่านเทียบกับค่าแฮชที่บันทึกไว้
 def verify_password(password_hash: str, password: str) -> bool:
     return check_password_hash(password_hash, password)
 
 
+# สร้าง JWT Access Token สำหรับยืนยันตัวตน พร้อมแนบ role และ email
 def build_access_token(user: User) -> str:
     return create_access_token(
         identity=str(user.user_id),
@@ -23,6 +26,7 @@ def build_access_token(user: User) -> str:
     )
 
 
+# แปลงข้อมูลผู้ใช้ให้อยู่ในรูป Dict พื้นฐานสำหรับส่งกลับไปยัง Frontend
 def user_to_dict(user: User) -> dict:
     return {
         'user_id': user.user_id,
@@ -30,9 +34,11 @@ def user_to_dict(user: User) -> dict:
         'role': user.role,
         'first_name': user.first_name,
         'last_name': user.last_name,
+        'username': user.username,
     }
 
 
+# แปลงข้อมูลผู้ใช้พร้อมวันที่สร้างบัญชี สำหรับหน้าจัดการระบบของผู้ดูแลระบบ
 def user_to_admin_dict(user: User) -> dict:
     return {
         **user_to_dict(user),
@@ -40,8 +46,10 @@ def user_to_admin_dict(user: User) -> dict:
     }
 
 
+# Decorator สำหรับตรวจสอบสิทธิ์เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น
 def admin_required(fn):
     @wraps(fn)
+    # ฟังก์ชันห่อหุ้มสำหรับตรวจเช็ค JWT Token และ Role Admin
     def wrapper(*args, **kwargs):
         verify_jwt_in_request()
         if get_jwt().get('role') != 'admin':
@@ -50,8 +58,8 @@ def admin_required(fn):
     return wrapper
 
 
+# สร้างบัญชีผู้ดูแลระบบเริ่มต้นสำหรับทดสอบในโหมด Debug เท่านั้น
 def seed_default_users() -> None:
-    """Create the insecure convenience account only in explicit debug mode."""
     from app.core.config import Config
     if not Config.FLASK_DEBUG:
         return

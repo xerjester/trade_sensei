@@ -1,4 +1,4 @@
-"""WSGI / Flask CLI entry point (FLASK_APP=wsgi.py)."""
+# จุดเริ่มต้นสำหรับรันเซิร์ฟเวอร์ WSGI / Flask Application
 from app import create_app
 
 app = create_app()

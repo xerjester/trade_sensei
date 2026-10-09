@@ -1,4 +1,4 @@
-"""CLI: batch scrape all target stocks (Admin pipeline)."""
+# สคริปต์ CLI สำหรับรัน Batch ดึงข้อมูลตลาดและข่าวสารของหุ้นทุกตัวในระบบ
 import sys
 from pathlib import Path
 

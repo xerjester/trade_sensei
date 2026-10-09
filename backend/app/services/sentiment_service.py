@@ -1,10 +1,11 @@
-"""TextBlob sentiment analysis for news (documents.md §4.2)."""
+# บริการวิเคราะห์ความรู้สึก (Sentiment Analysis) ของข่าวสารด้วย TextBlob
 from textblob import TextBlob
 
 from app.core.database import db
 from app.models import News, NewsSentiment, SystemLog
 
 
+# แปลงค่าคะแนน Polarity เป็นป้ายกำกับ (Positive, Negative, Neutral)
 def _label_from_polarity(polarity: float) -> str:
     if polarity > 0.1:
         return 'Positive'
@@ -13,6 +14,7 @@ def _label_from_polarity(polarity: float) -> str:
     return 'Neutral'
 
 
+# วิเคราะห์อารมณ์ของข่าวรายตัวด้วย TextBlob และบันทึกผลลงในตาราง NewsSentiment
 def analyze_news_item(news: News) -> NewsSentiment:
     text = news.title or ''
     if news.content:
@@ -41,8 +43,8 @@ def analyze_news_item(news: News) -> NewsSentiment:
     return row
 
 
+# วิเคราะห์ข่าวของหุ้นที่ยังไม่ได้คิดคะแนน และบันทึกประวัติการทำงานลง SystemLog
 def analyze_stock_news(stock_id: int) -> int:
-    """DFD 3.2: analyze unscored D4 news, persist results, and create a D7 audit log."""
     news_items = News.query.filter_by(stock_id=stock_id).all()
     count = 0
     for news in news_items:
@@ -51,7 +53,7 @@ def analyze_stock_news(stock_id: int) -> int:
         analyze_news_item(news)
         count += 1
     if count:
-        # The log makes the NLP pipeline observable from the admin log screen.
+        # บันทึกการทำงานของ NLP ลงใน SystemLog เพื่อให้ตรวจสอบได้จากหน้า Admin
         db.session.add(SystemLog(
             action_type='ANALYZE_NEWS_SENTIMENT',
             description=f'วิเคราะห์อารมณ์ข่าว stock_id={stock_id} จำนวน {count} เรื่อง',
@@ -60,8 +62,8 @@ def analyze_stock_news(stock_id: int) -> int:
     return count
 
 
+# สรุปภาพรวมอารมณ์ข่าวสารของหุ้น (คะแนนเฉลี่ย, สัดส่วน บวก/ลบ/กลาง) สำหรับแสดงผลและส่งให้ AI
 def get_sentiment_summary(stock_id: int) -> dict:
-    """Aggregate sentiment for deep analysis and RAG."""
     analyze_stock_news(stock_id)
 
     rows = (

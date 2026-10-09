@@ -9,6 +9,7 @@ from app.services import stock_service
 stocks_bp = Blueprint('stocks', __name__, url_prefix='/api')
 
 
+# API ดึงรายชื่อหุ้นและสินทรัพย์ทั้งหมดในระบบ
 @stocks_bp.route('/stocks', methods=['GET'])
 @limiter.exempt
 def get_all_stocks():
@@ -18,6 +19,7 @@ def get_all_stocks():
         return jsonify({'status': 'error', 'message': 'ไม่สามารถโหลดรายชื่อหุ้นได้'}), 500
 
 
+# API ดึงข้อมูลราคาย้อนหลัง OHLCV ของหุ้นสำหรับใช้วาดกราฟแท่งเทียน
 @stocks_bp.route('/stock-data/<symbol>', methods=['GET'])
 @limiter.exempt
 def get_stock_data(symbol):
@@ -29,6 +31,7 @@ def get_stock_data(symbol):
     return jsonify({'status': 'success', 'data': data}), 200
 
 
+# API ดึงข้อมูลประวัติราคาหุ้นจาก Yahoo Finance มาบันทึกในฐานข้อมูล (เฉพาะ Admin)
 @stocks_bp.route('/fetch-stock', methods=['POST'])
 @admin_required
 def fetch_stock_data():
